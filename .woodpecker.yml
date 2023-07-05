@@ -1,4 +1,4 @@
-pipeline:
+steps:
   publish_prod:
     image: woodpeckerci/plugin-docker-buildx
     settings:
