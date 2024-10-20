@@ -1,5 +1,7 @@
 package main
 
+import "gopkg.in/telebot.v4"
+
 type Service int
 
 const (
@@ -17,13 +19,18 @@ const (
 
 type GenericMessage struct {
 	service Service
-	text string
+	rawText string
+	// Message without action string and
+	// possibly related prefixes or suffixes
+	parsedText string
 	id int
 	replyToId int
 	isReply bool
 	chatId int64
 	action Action
 	url string
+
+	telebotContext telebot.Context
 }
 const (
 	ActionTuplillaString = "tuplilla"

@@ -1,6 +1,10 @@
 package main
 
 import (
+	"log"
+	"os"
+	"time"
+
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -17,9 +21,10 @@ type TelegramMessageParser struct {
 	next handler
 }
 
-func (telegramMessageParser *TelegramMessageParser) execute(c tele.Context) {
+func (telegramMessageParser *TelegramMessageParser) execute(m *GenericMessage) {
+	c := m.telebotContext
 	genericMessage := GenericMessage{
-		text: c.Message().Text,
+		rawText: c.Message().Text,
 		id: c.Message().ID,
 		isReply: c.Message().IsReply(),
 		chatId: c.Chat().ID,
@@ -36,48 +41,45 @@ func (mp *TelegramMessageParser) setNext(next handler) {
 	mp.next = next
 }
 
-// func (handler )
-
 func main() {
-	// pref := tele.Settings{
-	// 	Token:  os.Getenv("TOKEN"),
-	// 	Poller: &tele.LongPoller{Timeout: 10 * time.Second},
-	// }
+	pref := tele.Settings{
+		Token:  os.Getenv("TOKEN"),
+		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
+	}
 
-	// b, err := tele.NewBot(pref)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// 	return
-	// }
+	b, err := tele.NewBot(pref)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 
-	// genericMessageParser := &GenericMessageParser{}
-	// telegramMessageParser := &TelegramMessageParser{}
-	// telegramMessageParser.setNext(genericMessageParser)
+	urlParser := HandlerLogger(&URLParser{})
+	genericMessageParser := HandlerLogger(&GenericMessageParser{})
+	genericMessageParser.setNext(urlParser)
+	telegramMessageParser := HandlerLogger(&TelegramMessageParser{})
+	telegramMessageParser.setNext(genericMessageParser)
+	b.Handle(tele.OnText, func(c tele.Context) error {
+		log.Println("receive message?")
 
-	// b.Handle(tele.OnText, func(c tele.Context) error {
-	// 	telegramMessageParser.execute(c)
-	// 	return nil
-	// })
+		telegramMessageParser.execute(&GenericMessage{telebotContext: c})
+		return nil
+	})
 
 	// b.Handle("*", func(c tele.Context) error {
 		
 	// 	return c.Send("Hello!")
 	// })
 
-	// b.Start()
+	b.Start()
 
-	urlParser := &URLParser{}
-	genericMessageParser := &GenericMessageParser{}
-	genericMessageParser.setNext(urlParser)
-	telegramMessageParser := &TelegramMessageParser{}
-	telegramMessageParser.setNext(genericMessageParser)
 	// foo := []string
 	// foo := string{"123", "foo"}
-	genericMessageParser.execute(&GenericMessage{
-		text: "/tuplilla foobar",
-		id: 123,
-		isReply: true,
-		replyToId: 456,
-		chatId: 123456,
-	})
+	// genericMessageParser.execute(&GenericMessage{
+	// 	// text: "/tuplilla foobar",
+	// 	rawText: "/dl https://youtube.com/asdfwera?w=234kissa",
+	// 	id: 123,
+	// 	isReply: true,
+	// 	replyToId: 456,
+	// 	chatId: 123456,
+	// })
 }

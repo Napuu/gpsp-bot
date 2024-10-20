@@ -11,11 +11,11 @@ type URLParser struct {
 func (u *URLParser) execute(m *GenericMessage) {
 	urlRegex := `https?://[a-zA-Z0-9./?=&_-]+`
 	re := regexp.MustCompile(urlRegex)
-	match := re.FindString(m.text)
+	match := re.FindString(m.parsedText)
 
 	m.url = match
 
-	u.next.execute(m)
+	// u.next.execute(m)
 }
 
 func (u *URLParser) setNext(next handler) {
