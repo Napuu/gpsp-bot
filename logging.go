@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"reflect"
-	"time"
 )
 
 type loggingDecorator struct {
@@ -28,13 +27,9 @@ func getTypeName(h interface{}) string {
 
 
 func (l *loggingDecorator) execute(m *GenericMessage) {
-	start := time.Now()
 	log.Printf("entering %s", l.name)
 	
 	l.handler.execute(m)
-	
-	elapsed := time.Since(start)
-	log.Printf("exiting %s, time elapsed: %v", l.name, elapsed)
 }
 
 func (l *loggingDecorator) setNext(next handler) {

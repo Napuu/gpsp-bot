@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 )
 
@@ -15,7 +16,14 @@ func (u *URLParser) execute(m *GenericMessage) {
 
 	m.url = match
 
-	// u.next.execute(m)
+	if len(m.url) > 0 {
+		fmt.Println("attempting download for fun")
+		downloadVideo(m.url, 20)
+	}
+
+	fmt.Println(m.url)
+
+	u.next.execute(m)
 }
 
 func (u *URLParser) setNext(next handler) {
