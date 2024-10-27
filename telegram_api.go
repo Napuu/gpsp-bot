@@ -3,21 +3,10 @@ package main
 import (
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	tele "gopkg.in/telebot.v4"
 )
-
-type Recipient struct {
-	Recipient string
-}
-
-type TelegramChatId int64
-
-func (i TelegramChatId) Recipient() string {
-	return strconv.FormatInt(int64(i), 10)
-}
 
 func runTelegramBot() {
     bot := getTelegramBot()

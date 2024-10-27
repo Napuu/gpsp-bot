@@ -14,7 +14,7 @@ type TelegramVideoResponseHandler struct {
 func (r *TelegramVideoResponseHandler) execute(m *Context) {
 	log.Println("Entering TelegramVideoResponseHandler")
 	if (m.service == Telegram) {
-		chatId := TelegramChatId(m.chatId)
+		chatId := tele.ChatID(m.chatId)
 
 		if (m.action == DownloadVideo && len(m.downloadedVideoPath) > 0) {
 			m.telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.downloadedVideoPath)} )
