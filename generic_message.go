@@ -1,6 +1,10 @@
 package main
 
-import "gopkg.in/telebot.v4"
+import (
+	"time"
+
+	"gopkg.in/telebot.v4"
+)
 
 type Service int
 
@@ -17,7 +21,7 @@ const (
 	SearchVideo
 )
 
-type GenericMessage struct {
+type Context struct {
 	service Service
 	rawText string
 	// Message without action string and
@@ -30,7 +34,17 @@ type GenericMessage struct {
 	action Action
 	url string
 
+	doneTyping chan struct{}
+	gotDubz bool
+	lastCubeThrownTime time.Time
+
 	telebotContext telebot.Context
+	telebot *telebot.Bot
+
+	downloadedVideoPath string
+	sendVideoSucceeded bool
+	shouldDeleteOriginalMessage bool
+	shouldNagAboutOriginalMessage bool
 }
 const (
 	ActionTuplillaString = "tuplilla"

@@ -1,13 +1,11 @@
 package main
 
-type handler interface {
-	execute(*GenericMessage)
-	setNext(handler)
+type ContextHandler interface {
+	execute(*Context)
+	setNext(ContextHandler)
 }
 
 
 func main() {
 	runTelegramBot()	
-
-	return 
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func downloadVideo(url string, targetSizeInMB uint64) *string {
+func downloadVideo(url string, targetSizeInMB uint64) string {
 	videoID := uuid.New().String()
 	filePath := fmt.Sprintf("/tmp/%s.mp4", videoID)
 	attemptDownload(url, filePath, "", targetSizeInMB)
@@ -30,12 +30,13 @@ func downloadVideo(url string, targetSizeInMB uint64) *string {
 	// 	}
 	// }
 
-	return nil
+	return filePath
 }
 
 func attemptDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
 	cmd := exec.Command("yt-dlp",
-	"--proxy", proxy,
+	// no proxy for now
+	// "--proxy", proxy,
 	"-f", fmt.Sprintf("((bv*[filesize<=%dM]/bv*)[height<=720]/(wv*[filesize<=%dM]/wv*)) + ba / (b[filesize<=%dM]/b)[height<=720]/(w[filesize<=%dM]/w)",
 	targetSizeInMB, targetSizeInMB, targetSizeInMB, targetSizeInMB),
 	"-S", "codec:h264",
