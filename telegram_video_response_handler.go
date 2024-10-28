@@ -16,8 +16,13 @@ func (r *TelegramVideoResponseHandler) execute(m *Context) {
 	if (m.service == Telegram) {
 		chatId := tele.ChatID(m.chatId)
 
-		if (m.action == DownloadVideo && len(m.downloadedVideoPath) > 0) {
-			m.telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.downloadedVideoPath)} )
+		var videoPathToSend = m.originalVideoPath
+		if len(m.possiblyProcessedVideoPath) > 0 {
+			videoPathToSend = m.possiblyProcessedVideoPath
+		}
+
+		if len(videoPathToSend) > 0 {
+			m.telebot.Send(chatId, &tele.Video{File: tele.FromDisk(videoPathToSend)} )
 			m.sendVideoSucceeded = true
 		}
 	}

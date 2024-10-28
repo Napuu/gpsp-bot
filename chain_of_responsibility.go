@@ -13,6 +13,8 @@ func NewChainOfResponsibility() *HandlerChain {
     telegramTypingHandler := &TelegramTypingHandler{}
 
     videoDownloadHandler := &VideoDownloadHandler{}
+    videoPostprocessingHandler := &VideoPostprocessingHandler{}
+    videoCutArgsHandler := &VideoCutArgsHandler{}
     markForDeletionHandler := &MarkForDeletionHandler{}
     markForNaggingHandler := &MarkForNaggingHandler{}
 
@@ -29,14 +31,16 @@ func NewChainOfResponsibility() *HandlerChain {
     genericMessageHandler.setNext(urlParser)
     urlParser.setNext(telegramTypingHandler)
 
-    telegramTypingHandler.setNext(videoDownloadHandler)
+    telegramTypingHandler.setNext(videoCutArgsHandler)
 
-    videoDownloadHandler.setNext(markForDeletionHandler)
-    markForDeletionHandler.setNext(markForNaggingHandler)
-    markForNaggingHandler.setNext(telegramTuplillaResponseHandler)
+    videoCutArgsHandler.setNext(videoDownloadHandler)
+    videoDownloadHandler.setNext(videoPostprocessingHandler)
+    videoPostprocessingHandler.setNext(telegramTuplillaResponseHandler)
 
     telegramTuplillaResponseHandler.setNext(telegramVideoResponseHandler)
-    telegramVideoResponseHandler.setNext(telegramDeleteMessageHandler)
+    telegramVideoResponseHandler.setNext(markForNaggingHandler)
+    markForNaggingHandler.setNext(markForDeletionHandler)
+    markForDeletionHandler.setNext(telegramDeleteMessageHandler)
     telegramDeleteMessageHandler.setNext(telegramTextResponseHandler)
     telegramTextResponseHandler.setNext(endOfChainHandler)
 

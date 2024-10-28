@@ -7,8 +7,11 @@ type DeleteDownloadedVideoHandler struct {
 }
 
 func (h *DeleteDownloadedVideoHandler) execute(m *Context) {
-	if len(m.downloadedVideoPath) > 0 {
-		os.Remove(m.downloadedVideoPath)
+	if len(m.originalVideoPath) > 0 {
+		os.Remove(m.originalVideoPath)
+	}
+	if len(m.possiblyProcessedVideoPath ) > 0 {
+		os.Remove(m.possiblyProcessedVideoPath)
 	}
 
 	h.next.execute(m)

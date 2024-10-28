@@ -25,7 +25,7 @@ func (r *TelegramTextResponseHandler) execute(m *Context) {
 			if m.gotDubz {
 				dubzResultMessage = fmt.Sprintf("Tuplat tuli 😎, %s", m.parsedText)
 			} else {
-				negated := getNegation(m.parsedText)
+				negated := <- m.dubzNegation
 				dubzResultMessage = fmt.Sprintf("Ei tuplia 😿, %s", negated)
 			}
 			time.Sleep((time.Second * 5) - time.Since(m.lastCubeThrownTime))

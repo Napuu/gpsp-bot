@@ -13,7 +13,7 @@ type TelegramTypingHandler struct {
 
 func (t *TelegramTypingHandler) execute(m *Context) {
     log.Println("Entering TelegramTypingHandler")
-    if m.service == Telegram && m.action == DownloadVideo {
+    if m.service == Telegram && (m.action == DownloadVideo || m.action == SearchVideo) {
         m.doneTyping = make(chan struct{})
 
         go func() {

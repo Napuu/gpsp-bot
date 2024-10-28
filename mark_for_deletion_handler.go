@@ -8,7 +8,7 @@ type MarkForDeletionHandler struct {
 
 func (u *MarkForDeletionHandler) execute(m *Context) {
 	log.Println("Entering MarkForDeletionHandler")
-	if m.action == DownloadVideo && m.sendVideoSucceeded {
+	if (m.action == DownloadVideo || m.action == SearchVideo) && m.sendVideoSucceeded {
 		m.shouldDeleteOriginalMessage = true
 	}
 

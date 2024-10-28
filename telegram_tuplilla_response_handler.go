@@ -35,6 +35,10 @@ func (r *TelegramTuplillaResponseHandler) execute(m *Context) {
 		}
 
 		m.lastCubeThrownTime = time.Now()
+		m.dubzNegation = make(chan string)
+		go func() {
+			m.dubzNegation <- getNegation(m.parsedText)
+		}()
 	}
 
 	r.next.execute(m)

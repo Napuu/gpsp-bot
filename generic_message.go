@@ -36,15 +36,21 @@ type Context struct {
 
 	doneTyping chan struct{}
 	gotDubz bool
+	dubzNegation chan string
 	lastCubeThrownTime time.Time
 
 	telebotContext telebot.Context
 	telebot *telebot.Bot
 
-	downloadedVideoPath string
+	originalVideoPath string
+	possiblyProcessedVideoPath string
 	sendVideoSucceeded bool
+	startSeconds chan float64
+	durationSeconds chan float64
+	cutVideoArgsParsed chan bool
 	shouldDeleteOriginalMessage bool
 	shouldNagAboutOriginalMessage bool
+
 }
 const (
 	ActionTuplillaString = "tuplilla"
