@@ -10,7 +10,7 @@ type VideoDownloadHandler struct {
 }
 
 func (u *VideoDownloadHandler) execute(m *Context) {
-	log.Println("Entering VideoDownloadHandler", m.action)
+	log.Println("Entering VideoDownloadHandler")
 	if m.action == DownloadVideo || m.action == SearchVideo {
 		var videoString = m.url
 		if m.action == SearchVideo {
