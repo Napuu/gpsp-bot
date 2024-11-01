@@ -1,11 +1,11 @@
-package main
+package handlers
 
 import (
 	"log"
 )
 type EndOfChainHandler struct {}
 
-func (h *EndOfChainHandler) execute(m *Context) {
+func (h *EndOfChainHandler) Execute(m *Context) {
 	log.Println("Entering EndOfChainHandler")
 	if m.doneTyping != nil {
 		log.Println("Closing doneTyping channel")
@@ -14,6 +14,6 @@ func (h *EndOfChainHandler) execute(m *Context) {
 
 }
 
-func (h *EndOfChainHandler) setNext(handler ContextHandler) {
+func (h *EndOfChainHandler) SetNext(handler ContextHandler) {
 	panic("cannot set next handler on ChainEnd")
 }

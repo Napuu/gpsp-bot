@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"time"
@@ -14,6 +14,11 @@ const (
 	// Matrix // not supported, perhaps at one point
 )
 
+type ContextHandler interface {
+	Execute(*Context)
+	SetNext(ContextHandler)
+}
+
 type Action int
 const (
 	Tuplilla Action = iota + 1
@@ -22,7 +27,7 @@ const (
 )
 
 type Context struct {
-	service Service
+	Service Service
 	rawText string
 	// Message without action string and
 	// possibly related prefixes or suffixes
@@ -39,8 +44,8 @@ type Context struct {
 	dubzNegation chan string
 	lastCubeThrownTime time.Time
 
-	telebotContext telebot.Context
-	telebot *telebot.Bot
+	TelebotContext telebot.Context
+	Telebot *telebot.Bot
 
 	originalVideoPath string
 	possiblyProcessedVideoPath string

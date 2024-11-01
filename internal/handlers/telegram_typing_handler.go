@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"log"
@@ -11,16 +11,16 @@ type TelegramTypingHandler struct {
 	next ContextHandler
 }
 
-func (t *TelegramTypingHandler) execute(m *Context) {
+func (t *TelegramTypingHandler) Execute(m *Context) {
     log.Println("Entering TelegramTypingHandler")
-    if m.service == Telegram && (m.action == DownloadVideo || m.action == SearchVideo) {
+    if m.Service == Telegram && (m.action == DownloadVideo || m.action == SearchVideo) {
         m.doneTyping = make(chan struct{})
 
         go func() {
             ticker := time.NewTicker(4 * time.Second)
             defer ticker.Stop()
 
-            _ = m.telebotContext.Notify(tele.UploadingVideo)
+            _ = m.TelebotContext.Notify(tele.UploadingVideo)
 
             for {
                 select {
@@ -28,16 +28,16 @@ func (t *TelegramTypingHandler) execute(m *Context) {
                     return
                 case <-ticker.C:
                                 log.Println("Continue typing")
-                    _ = m.telebotContext.Notify(tele.UploadingVideo)
+                    _ = m.TelebotContext.Notify(tele.UploadingVideo)
                 }
             }
         }()
     }
 
-    t.next.execute(m)
+    t.next.Execute(m)
 }
 
 
-func (t *TelegramTypingHandler) setNext(next ContextHandler) {
+func (t *TelegramTypingHandler) SetNext(next ContextHandler) {
 	t.next = next
 }

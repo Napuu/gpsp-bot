@@ -1,15 +1,17 @@
-package main
+package handlers
 
 import (
 	"log"
 	"strings"
+
+	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
 type VideoCutArgsHandler struct {
 	next ContextHandler
 }
 
-func (u *VideoCutArgsHandler) execute(m *Context) {
+func (u *VideoCutArgsHandler) Execute(m *Context) {
 	log.Println("Entering VideoCutArgsHandler")
 	leftover := strings.Replace(m.parsedText, m.url, "", 1)
 
@@ -20,7 +22,7 @@ func (u *VideoCutArgsHandler) execute(m *Context) {
 	m.cutVideoArgsParsed = make(chan bool)
 	go func() {
 		if m.action == DownloadVideo && len(leftover) > MIN_LEFTOVER_LEN_TO_CONSIDER {
-			startSeconds, durationSeconds, err := parseCutArgs(leftover)
+			startSeconds, durationSeconds, err := utils.ParseCutArgs(leftover)
 			if err != nil {
 				log.Println("Failed", err)
 				m.cutVideoArgsParsed <- false
@@ -35,9 +37,9 @@ func (u *VideoCutArgsHandler) execute(m *Context) {
 		}
 	}()
 
-	u.next.execute(m)
+	u.next.Execute(m)
 }
 
-func (u *VideoCutArgsHandler) setNext(next ContextHandler) {
+func (u *VideoCutArgsHandler) SetNext(next ContextHandler) {
 	u.next = next
 }

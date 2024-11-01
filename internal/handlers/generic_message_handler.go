@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"strings"
@@ -9,7 +9,7 @@ type GenericMessageHandler struct {
 	next ContextHandler
 }
 
-func (mp *GenericMessageHandler) execute(m *Context) {
+func (mp *GenericMessageHandler) Execute(m *Context) {
 	var extractedAction string
 	var textWithoutPrefixOrSuffix string
 	if textNoPrefix, hasPrefix := strings.CutPrefix(m.rawText, "/"); hasPrefix {
@@ -34,9 +34,9 @@ func (mp *GenericMessageHandler) execute(m *Context) {
 		m.parsedText = strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1)
 	}
 
-	mp.next.execute(m)	
+	mp.next.Execute(m)	
 }
 
-func (mp *GenericMessageHandler) setNext(next ContextHandler) {
+func (mp *GenericMessageHandler) SetNext(next ContextHandler) {
 	mp.next = next
 }

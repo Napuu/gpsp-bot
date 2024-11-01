@@ -1,23 +1,26 @@
-package main
+package platforms
 
 import (
 	"log"
 	"os"
 	"time"
 
+	"github.com/napuu/gpsp-bot/internal/chain"
+	"github.com/napuu/gpsp-bot/internal/handlers"
+
 	tele "gopkg.in/telebot.v4"
 )
 
-func wrapHandler(bot *tele.Bot, chain *HandlerChain) func(c tele.Context) error {
+func wrapHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) error {
 	return func(c tele.Context) error {
-		chain.Process(&Context{telebotContext: c, telebot: bot, service: Telegram})
+		chain.Process(&handlers.Context{TelebotContext: c, Telebot: bot, Service: handlers.Telegram})
 		return nil
 	}
 }
 
-func runTelegramBot() {
+func RunTelegramBot() {
     bot := getTelegramBot()
-    chain := NewChainOfResponsibility()
+    chain := chain.NewChainOfResponsibility()
 
 		bot.Handle(tele.OnMessageReaction, wrapHandler(bot, chain))
 		bot.Handle(tele.OnText, wrapHandler(bot, chain))

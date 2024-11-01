@@ -1,28 +1,30 @@
-package main
+package handlers
 
 import (
 	"fmt"
 	"log"
+
+	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
 type VideoDownloadHandler struct {
 	next ContextHandler
 }
 
-func (u *VideoDownloadHandler) execute(m *Context) {
+func (u *VideoDownloadHandler) Execute(m *Context) {
 	log.Println("Entering VideoDownloadHandler")
 	if m.action == DownloadVideo || m.action == SearchVideo {
 		var videoString = m.url
 		if m.action == SearchVideo {
 			videoString = fmt.Sprintf("ytsearch:\"%s\"", videoString)
 		}
-		path := downloadVideo(videoString, 5)
+		path := utils.DownloadVideo(videoString, 5)
 
 		m.originalVideoPath = path
 	}
-	u.next.execute(m)
+	u.next.Execute(m)
 }
 
-func (u *VideoDownloadHandler) setNext(next ContextHandler) {
+func (u *VideoDownloadHandler) SetNext(next ContextHandler) {
 	u.next = next
 }

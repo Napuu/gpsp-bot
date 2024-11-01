@@ -1,9 +1,10 @@
-package main
+package handlers
 
 import (
 	"log"
 	"time"
 
+	"github.com/napuu/gpsp-bot/pkg/utils"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -11,12 +12,12 @@ type TelegramTuplillaResponseHandler struct {
 	next ContextHandler
 }
 
-func (r *TelegramTuplillaResponseHandler) execute(m *Context) {
+func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
 	log.Println("Entering TelegramTuplillaResponseHandler")
-	if m.service == Telegram && m.action == Tuplilla {
+	if m.Service == Telegram && m.action == Tuplilla {
 		chatId := tele.ChatID(m.chatId)
 
-		cube1Response, err := m.telebot.Send(chatId, tele.Cube)
+		cube1Response, err := m.Telebot.Send(chatId, tele.Cube)
 
 		if err != nil {
 			log.Fatal(err)
@@ -24,7 +25,7 @@ func (r *TelegramTuplillaResponseHandler) execute(m *Context) {
 
 		time.Sleep(2 * time.Second)
 
-		cube2Response, err := m.telebot.Send(chatId, tele.Cube)
+		cube2Response, err := m.Telebot.Send(chatId, tele.Cube)
 
 		if err != nil {
 			log.Fatal(err)
@@ -37,13 +38,13 @@ func (r *TelegramTuplillaResponseHandler) execute(m *Context) {
 		m.lastCubeThrownTime = time.Now()
 		m.dubzNegation = make(chan string)
 		go func() {
-			m.dubzNegation <- getNegation(m.parsedText)
+			m.dubzNegation <- utils.GetNegation(m.parsedText)
 		}()
 	}
 
-	r.next.execute(m)
+	r.next.Execute(m)
 }
 
-func (u *TelegramTuplillaResponseHandler) setNext(next ContextHandler) {
+func (u *TelegramTuplillaResponseHandler) SetNext(next ContextHandler) {
 	u.next = next
 }

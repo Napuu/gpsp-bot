@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"context"
@@ -30,7 +30,7 @@ Jaan on suomalainen miehen nimi.
 			openai.AssistantMessage("en esitä puhelimessa mikko mallikasta enkä jätä 200$ tarjousta"),
 			openai.UserMessage(input),
 		}),
-		Model: openai.F(openai.ChatModelGPT4oMini),
+		Model: openai.F(openai.ChatModelGPT4o),
 	})
 	if err != nil {
 		panic(err.Error())

@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"log"
@@ -11,9 +11,9 @@ type TelegramVideoResponseHandler struct {
 }
 
 
-func (r *TelegramVideoResponseHandler) execute(m *Context) {
+func (r *TelegramVideoResponseHandler) Execute(m *Context) {
 	log.Println("Entering TelegramVideoResponseHandler")
-	if (m.service == Telegram) {
+	if (m.Service == Telegram) {
 		chatId := tele.ChatID(m.chatId)
 
 		var videoPathToSend = m.originalVideoPath
@@ -22,14 +22,14 @@ func (r *TelegramVideoResponseHandler) execute(m *Context) {
 		}
 
 		if len(videoPathToSend) > 0 {
-			m.telebot.Send(chatId, &tele.Video{File: tele.FromDisk(videoPathToSend)} )
+			m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(videoPathToSend)} )
 			m.sendVideoSucceeded = true
 		}
 	}
 
-	r.next.execute(m)
+	r.next.Execute(m)
 }
 
-func (u *TelegramVideoResponseHandler) setNext(next ContextHandler) {
+func (u *TelegramVideoResponseHandler) SetNext(next ContextHandler) {
 	u.next = next
 }

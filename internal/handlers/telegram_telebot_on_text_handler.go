@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import "log"
 
@@ -6,9 +6,9 @@ type TelegramTelebotOnTextHandler struct {
 	next ContextHandler
 }
 
-func (telegramMessageParser *TelegramTelebotOnTextHandler) execute(m *Context) {
+func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
 	log.Println("Entering TelegramTelebotOnTextHandler")
-	c := m.telebotContext
+	c := m.TelebotContext
 	message := c.Message()
 	if message != nil {
 		m.rawText = c.Message().Text
@@ -20,9 +20,9 @@ func (telegramMessageParser *TelegramTelebotOnTextHandler) execute(m *Context) {
 			m.replyToId = c.Message().ReplyTo.ID
 		}
 	}
-	telegramMessageParser.next.execute(m)
+	telegramMessageParser.next.Execute(m)
 }
 
-func (mp *TelegramTelebotOnTextHandler) setNext(next ContextHandler) {
+func (mp *TelegramTelebotOnTextHandler) SetNext(next ContextHandler) {
 	mp.next = next
 }

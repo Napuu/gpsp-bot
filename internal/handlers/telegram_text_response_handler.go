@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ type TelegramTextResponseHandler struct {
 	next ContextHandler
 }
 
-func (r *TelegramTextResponseHandler) execute(m *Context) {
+func (r *TelegramTextResponseHandler) Execute(m *Context) {
 	log.Println("Entering TelegramTextResponseHandler")
-	if m.service == Telegram {
+	if m.Service == Telegram {
 		if m.shouldNagAboutOriginalMessage {
-			err := m.telebotContext.Reply("Hyvä linkki...")
+			err := m.TelebotContext.Reply("Hyvä linkki...")
 			if err != nil {
 				log.Println(err)
 			}
@@ -29,14 +29,14 @@ func (r *TelegramTextResponseHandler) execute(m *Context) {
 				dubzResultMessage = fmt.Sprintf("Ei tuplia 😿, %s", negated)
 			}
 			time.Sleep((time.Second * 5) - time.Since(m.lastCubeThrownTime))
-			m.telebotContext.Send(dubzResultMessage)
+			m.TelebotContext.Send(dubzResultMessage)
 		}
 
 	}
 
-	r.next.execute(m)
+	r.next.Execute(m)
 }
 
-func (u *TelegramTextResponseHandler) setNext(next ContextHandler) {
+func (u *TelegramTextResponseHandler) SetNext(next ContextHandler) {
 	u.next = next
 }
