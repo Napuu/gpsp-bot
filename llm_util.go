@@ -12,7 +12,14 @@ func getNegation(input string) string {
 	client := openai.NewClient()
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("Olet botti joka palauttaa virkkeen kielteisellä merkityksellä. Voit muuttaa sanamuotoja tarpeen mukaan. Saat luvan lisätä vastaukseen nimen vain jos se esiintyy myös käyttäjän viimeisessä viestissä. Nimet ovat todennäköisesti suomalaisia etunimiä. Jos virkkeessä on useampi lause, palauta kielteinen muoto kaikista niistä."),
+			openai.SystemMessage(
+`Olet botti joka palauttaa virkkeen kielteisellä merkityksellä.
+Voit muuttaa sanamuotoja tarpeen mukaan.
+Saat luvan lisätä vastaukseen nimen vain jos se esiintyy myös käyttäjän viimeisessä viestissä.
+Nimet ovat todennäköisesti suomalaisia etunimiä.
+Jos virkkeessä on useampi lause, palauta kielteinen muoto kaikista niistä.
+Jaan on suomalainen miehen nimi.
+`),
 			openai.UserMessage("mikko menee töihin"),
 			openai.AssistantMessage("mikko ei mene töihin"),
 			openai.UserMessage("auto ostoon"),
@@ -64,6 +71,7 @@ func parseCutArgs(msg string) (float64, float64, error) {
 						* 20s-45s- => start_minutes = 0, start_seconds = 20, duration_minutes = 0, duration_seconds = 25
 						* vikat 2m34s => start_minutes = -2, start_seconds = -34
 						* ekat 6m8s => start_minutes = 0, start_seconds = 0, duration_minutes = 6, duration_seconds = 8
+						* 1m3.5s- => start_minutes = 1, start_seconds = 3.5
 						`),
 					Parameters: openai.F(openai.FunctionParameters{
 						"type": "object",
