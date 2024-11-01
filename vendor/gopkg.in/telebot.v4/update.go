@@ -358,6 +358,11 @@ func (b *Bot) ProcessContext(c Context) {
 		b.handle(OnDeletedBusinessMessages, c)
 		return
 	}
+
+	if u.MessageReaction != nil {
+		b.handle(OnMessageReaction, c)
+		return
+	}
 }
 
 func (b *Bot) handle(end string, c Context) bool {
