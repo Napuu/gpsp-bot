@@ -5,7 +5,7 @@ type HandlerChain struct {
 
 func NewChainOfResponsibility() *HandlerChain {
 
-    telegramParser := &TelegramIncomingContextHandler{}
+    telegramParser := &TelegramTelebotOnTextHandler{}
 
     genericMessageHandler := &GenericMessageHandler{}
     urlParser := &URLHandler{}
