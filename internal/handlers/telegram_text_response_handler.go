@@ -32,6 +32,13 @@ func (r *TelegramTextResponseHandler) Execute(m *Context) {
 			m.TelebotContext.Send(dubzResultMessage)
 		}
 
+		if m.action == Ping {
+			err := m.TelebotContext.Reply("pong")
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
 	}
 
 	r.next.Execute(m)

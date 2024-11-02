@@ -24,6 +24,14 @@ const (
 	Tuplilla Action = iota + 1
 	DownloadVideo
 	SearchVideo
+	Ping
+)
+
+const (
+	ActionTuplillaString = "tuplilla"
+	ActionDownloadVideoString = "dl"
+	ActionSearchVideoString = "s"
+	ActionPingString = "ping"	
 )
 
 type Context struct {
@@ -57,8 +65,3 @@ type Context struct {
 	shouldNagAboutOriginalMessage bool
 
 }
-const (
-	ActionTuplillaString = "tuplilla"
-	ActionDownloadVideoString = "dl"
-	ActionSearchVideo = "s"
-)

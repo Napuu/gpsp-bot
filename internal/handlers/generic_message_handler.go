@@ -12,23 +12,27 @@ type GenericMessageHandler struct {
 func (mp *GenericMessageHandler) Execute(m *Context) {
 	var extractedAction string
 	var textWithoutPrefixOrSuffix string
-	if textNoPrefix, hasPrefix := strings.CutPrefix(m.rawText, "/"); hasPrefix {
+	textNoPrefix, hasPrefix := strings.CutPrefix(m.rawText, "/")
+	textNoSuffix, hasSuffix := strings.CutSuffix(m.rawText, "!")
+	if hasPrefix {
 		extractedAction = strings.Split(textNoPrefix, " ")[0]
 		textWithoutPrefixOrSuffix = textNoPrefix
-	} else if textNoSuffix, hasSuffix := strings.CutSuffix(m.rawText, "!"); hasSuffix {
+	} else if hasSuffix {
 		split := strings.Split(textNoSuffix, " ")
 		extractedAction = split[len(split) - 1]
 		textWithoutPrefixOrSuffix = textNoSuffix
 	}
 
-	if extractedAction != "" {
+	if (hasPrefix || hasSuffix) && extractedAction != "" {
 		switch extractedAction {
 		case ActionDownloadVideoString:
 			m.action = DownloadVideo
-		case ActionSearchVideo:
+		case ActionSearchVideoString:
 			m.action = SearchVideo
 		case ActionTuplillaString:
 			m.action = Tuplilla
+		case ActionPingString:
+			m.action = Ping
 		}
 
 		m.parsedText = strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1)
