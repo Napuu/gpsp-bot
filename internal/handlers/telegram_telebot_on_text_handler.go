@@ -12,12 +12,13 @@ func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
 	message := c.Message()
 	if message != nil {
 		m.rawText = c.Message().Text
-		m.id = c.Message().ID
+		m.id = int64(c.Message().ID)
 		m.isReply = c.Message().IsReply()
 		m.chatId = c.Chat().ID
 
-		if (c.Message().IsReply()) {
-			m.replyToId = c.Message().ReplyTo.ID
+		if c.Message().IsReply() {
+			m.replyToId = int64(c.Message().ReplyTo.ID)
+			m.shouldReplyToMessage = true
 		}
 	}
 	telegramMessageParser.next.Execute(m)

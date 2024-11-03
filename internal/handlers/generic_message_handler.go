@@ -19,26 +19,26 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 		textWithoutPrefixOrSuffix = textNoPrefix
 	} else if hasSuffix {
 		split := strings.Split(textNoSuffix, " ")
-		extractedAction = split[len(split) - 1]
+		extractedAction = split[len(split)-1]
 		textWithoutPrefixOrSuffix = textNoSuffix
 	}
 
 	if (hasPrefix || hasSuffix) && extractedAction != "" {
-		switch extractedAction {
-		case ActionDownloadVideoString:
+		switch Action(extractedAction) {
+		case DownloadVideo:
 			m.action = DownloadVideo
-		case ActionSearchVideoString:
+		case SearchVideo:
 			m.action = SearchVideo
-		case ActionTuplillaString:
+		case Tuplilla:
 			m.action = Tuplilla
-		case ActionPingString:
+		case Ping:
 			m.action = Ping
 		}
 
 		m.parsedText = strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1)
 	}
 
-	mp.next.Execute(m)	
+	mp.next.Execute(m)
 }
 
 func (mp *GenericMessageHandler) SetNext(next ContextHandler) {

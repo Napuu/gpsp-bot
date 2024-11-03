@@ -19,19 +19,13 @@ type ContextHandler interface {
 	SetNext(ContextHandler)
 }
 
-type Action int
-const (
-	Tuplilla Action = iota + 1
-	DownloadVideo
-	SearchVideo
-	Ping
-)
+type Action string
 
 const (
-	ActionTuplillaString = "tuplilla"
-	ActionDownloadVideoString = "dl"
-	ActionSearchVideoString = "s"
-	ActionPingString = "ping"	
+	Tuplilla      Action = "tuplilla"
+	DownloadVideo Action = "dl"
+	SearchVideo   Action = "s"
+	Ping          Action = "ping"
 )
 
 type Context struct {
@@ -40,28 +34,32 @@ type Context struct {
 	// Message without action string and
 	// possibly related prefixes or suffixes
 	parsedText string
-	id int
-	replyToId int
-	isReply bool
-	chatId int64
-	action Action
-	url string
+	id         int64
+	replyToId  int64
+	// Must store separate from replyToId as
+	// replyToId = 0 might refer to first message
+	// or to no message at all
+	shouldReplyToMessage bool
+	isReply              bool
+	chatId               int64
+	action               Action
+	url                  string
 
-	doneTyping chan struct{}
-	gotDubz bool
-	dubzNegation chan string
+	doneTyping         chan struct{}
+	gotDubz            bool
+	dubzNegation       chan string
 	lastCubeThrownTime time.Time
 
 	TelebotContext telebot.Context
-	Telebot *telebot.Bot
+	Telebot        *telebot.Bot
 
-	originalVideoPath string
-	possiblyProcessedVideoPath string
-	sendVideoSucceeded bool
-	startSeconds chan float64
-	durationSeconds chan float64
-	cutVideoArgsParsed chan bool
-	shouldDeleteOriginalMessage bool
+	originalVideoPath             string
+	possiblyProcessedVideoPath    string
+	textResponse                  string
+	sendVideoSucceeded            bool
+	startSeconds                  chan float64
+	durationSeconds               chan float64
+	cutVideoArgsParsed            chan bool
+	shouldDeleteOriginalMessage   bool
 	shouldNagAboutOriginalMessage bool
-
 }

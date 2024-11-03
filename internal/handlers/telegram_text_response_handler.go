@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
-	"time"
+
+	tele "gopkg.in/telebot.v4"
 )
 
 type TelegramTextResponseHandler struct {
@@ -13,32 +13,15 @@ type TelegramTextResponseHandler struct {
 func (r *TelegramTextResponseHandler) Execute(m *Context) {
 	log.Println("Entering TelegramTextResponseHandler")
 	if m.Service == Telegram {
-		if m.shouldNagAboutOriginalMessage {
-			err := m.TelebotContext.Reply("Hyvä linkki...")
-			if err != nil {
-				log.Println(err)
+		if m.shouldReplyToMessage {
+			message := &tele.Message{
+				Chat: &tele.Chat{ID: m.chatId},
+				ID:   int(m.replyToId),
 			}
+			m.Telebot.Reply(message, m.textResponse)
+		} else if m.textResponse != "" {
+			m.TelebotContext.Send(m.textResponse)
 		}
-		
-		if m.action == Tuplilla {
-			var dubzResultMessage string
-			if m.gotDubz {
-				dubzResultMessage = fmt.Sprintf("Tuplat tuli 😎, %s", m.parsedText)
-			} else {
-				negated := <- m.dubzNegation
-				dubzResultMessage = fmt.Sprintf("Ei tuplia 😿, %s", negated)
-			}
-			time.Sleep((time.Second * 5) - time.Since(m.lastCubeThrownTime))
-			m.TelebotContext.Send(dubzResultMessage)
-		}
-
-		if m.action == Ping {
-			err := m.TelebotContext.Reply("pong")
-			if err != nil {
-				log.Println(err)
-			}
-		}
-
 	}
 
 	r.next.Execute(m)

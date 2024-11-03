@@ -5,57 +5,59 @@ import (
 )
 
 type HandlerChain struct {
-    rootParser handlers.ContextHandler 
+	rootParser handlers.ContextHandler
 }
-
 
 func NewChainOfResponsibility() *HandlerChain {
 
-    telegramParser := &handlers.TelegramTelebotOnTextHandler{}
+	telegramParser := &handlers.TelegramTelebotOnTextHandler{}
 
-    genericMessageHandler := &handlers.GenericMessageHandler{}
-    urlParser := &handlers.URLHandler{}
+	genericMessageHandler := &handlers.GenericMessageHandler{}
+	urlParser := &handlers.URLHandler{}
 
-    telegramTypingHandler := &handlers.TelegramTypingHandler{}
+	telegramTypingHandler := &handlers.TelegramTypingHandler{}
 
-    videoDownloadHandler := &handlers.VideoDownloadHandler{}
-    videoPostprocessingHandler := &handlers.VideoPostprocessingHandler{}
-    videoCutArgsHandler := &handlers.VideoCutArgsHandler{}
-    markForDeletionHandler := &handlers.MarkForDeletionHandler{}
-    markForNaggingHandler := &handlers.MarkForNaggingHandler{}
+	videoDownloadHandler := &handlers.VideoDownloadHandler{}
+	videoPostprocessingHandler := &handlers.VideoPostprocessingHandler{}
+	videoCutArgsHandler := &handlers.VideoCutArgsHandler{}
+	markForDeletionHandler := &handlers.MarkForDeletionHandler{}
+	markForNaggingHandler := &handlers.MarkForNaggingHandler{}
+	constructTextResponseHandler := &handlers.ConstructTextResponseHandler{}
 
-    telegramVideoResponseHandler := &handlers.TelegramVideoResponseHandler{}
-    telegramDeleteMessageHandler := &handlers.TelegramDeleteMarkedMessageHandler{}
-    telegramTextResponseHandler := &handlers.TelegramTextResponseHandler{}
-    telegramTuplillaResponseHandler := &handlers.TelegramTuplillaResponseHandler{}
+	telegramVideoResponseHandler := &handlers.TelegramVideoResponseHandler{}
+	telegramDeleteMessageHandler := &handlers.TelegramDeleteMarkedMessageHandler{}
+	telegramTextResponseHandler := &handlers.TelegramTextResponseHandler{}
+	telegramTuplillaResponseHandler := &handlers.TelegramTuplillaResponseHandler{}
 
-    endOfChainHandler := &handlers.EndOfChainHandler{}
+	endOfChainHandler := &handlers.EndOfChainHandler{}
 
-    // Constructing the chain
-    telegramParser.SetNext(genericMessageHandler)
+	// Constructing the chain
+	telegramParser.SetNext(genericMessageHandler)
 
-    genericMessageHandler.SetNext(urlParser)
-    urlParser.SetNext(telegramTypingHandler)
+	genericMessageHandler.SetNext(urlParser)
+	urlParser.SetNext(telegramTypingHandler)
 
-    telegramTypingHandler.SetNext(videoCutArgsHandler)
+	telegramTypingHandler.SetNext(videoCutArgsHandler)
 
-    videoCutArgsHandler.SetNext(videoDownloadHandler)
-    videoDownloadHandler.SetNext(videoPostprocessingHandler)
-    videoPostprocessingHandler.SetNext(telegramTuplillaResponseHandler)
+	videoCutArgsHandler.SetNext(videoDownloadHandler)
+	videoDownloadHandler.SetNext(videoPostprocessingHandler)
+	videoPostprocessingHandler.SetNext(telegramTuplillaResponseHandler)
 
-    telegramTuplillaResponseHandler.SetNext(telegramVideoResponseHandler)
-    telegramVideoResponseHandler.SetNext(markForNaggingHandler)
-    markForNaggingHandler.SetNext(markForDeletionHandler)
-    markForDeletionHandler.SetNext(telegramDeleteMessageHandler)
-    telegramDeleteMessageHandler.SetNext(telegramTextResponseHandler)
-    telegramTextResponseHandler.SetNext(endOfChainHandler)
+	telegramTuplillaResponseHandler.SetNext(telegramVideoResponseHandler)
+	telegramVideoResponseHandler.SetNext(markForNaggingHandler)
+	markForNaggingHandler.SetNext(markForDeletionHandler)
+	markForDeletionHandler.SetNext(constructTextResponseHandler)
+	constructTextResponseHandler.SetNext(telegramDeleteMessageHandler)
 
-    return &HandlerChain{
-        rootParser: telegramParser,
-    }
+	telegramDeleteMessageHandler.SetNext(telegramTextResponseHandler)
+	telegramTextResponseHandler.SetNext(endOfChainHandler)
+
+	return &HandlerChain{
+		rootParser: telegramParser,
+	}
 }
 
 // Process handles incoming messages through the chain
 func (h *HandlerChain) Process(msg *handlers.Context) {
-    h.rootParser.Execute(msg)
+	h.rootParser.Execute(msg)
 }
