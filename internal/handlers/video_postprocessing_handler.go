@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os/exec"
 
 	"github.com/google/uuid"
@@ -32,7 +33,7 @@ func cutVideo(input, output string, startSeconds, durationSeconds float64) error
 }
 
 func (u *VideoPostprocessingHandler) Execute(m *Context) {
-	log.Println("Entering VideoPostprocessingHandler")
+	slog.Debug("Entering VideoPostprocessingHandler")
 	shouldTryPostprocessing := <-m.cutVideoArgsParsed
 	if m.action == DownloadVideo && shouldTryPostprocessing {
 		startSeconds := <-m.startSeconds

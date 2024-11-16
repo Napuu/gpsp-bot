@@ -1,13 +1,13 @@
 package handlers
 
-import "log"
+import "log/slog"
 
 type TelegramTelebotOnTextHandler struct {
 	next ContextHandler
 }
 
 func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
-	log.Println("Entering TelegramTelebotOnTextHandler")
+	slog.Debug("Entering TelegramTelebotOnTextHandler")
 	c := m.TelebotContext
 	message := c.Message()
 	if message != nil {

@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
+	// slog.SetLogLoggerLevel(slog.LevelDebug)
 	platforms.RunTelegramBot()
 }

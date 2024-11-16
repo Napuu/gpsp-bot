@@ -1,15 +1,17 @@
 package handlers
 
-import "log"
+import (
+	"log/slog"
+)
 
 type MarkForNaggingHandler struct {
 	next ContextHandler
 }
 
 func (u *MarkForNaggingHandler) Execute(m *Context) {
-	log.Println("Entering MarkForNaggingHandler")
+	slog.Debug("Entering MarkForNaggingHandler")
 	if m.action == DownloadVideo && !m.sendVideoSucceeded {
-		log.Println("shouldNag set true")
+		slog.Debug("shouldNag set true")
 		m.shouldNagAboutOriginalMessage = true
 	}
 

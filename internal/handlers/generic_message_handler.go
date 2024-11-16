@@ -1,10 +1,11 @@
 package handlers
 
 import (
+	"fmt"
+	"log/slog"
 	"strings"
 )
 
-// Determines which action user is trying to perform
 type GenericMessageHandler struct {
 	next ContextHandler
 }
@@ -38,6 +39,10 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 		}
 
 		m.parsedText = strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1)
+	}
+
+	if m.action != "" {
+		slog.Info(fmt.Sprintf("Command '%s' received", m.action))
 	}
 
 	mp.next.Execute(m)

@@ -13,7 +13,7 @@ func GetNegation(input string) string {
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
-`Olet botti joka palauttaa virkkeen kielteisellä merkityksellä.
+				`Olet botti joka palauttaa virkkeen käänteisellä merkityksellä.
 Voit muuttaa sanamuotoja tarpeen mukaan.
 Saat luvan lisätä vastaukseen nimen vain jos se esiintyy myös käyttäjän viimeisessä viestissä.
 Nimet ovat todennäköisesti suomalaisia etunimiä.
@@ -39,12 +39,11 @@ Jaan on suomalainen miehen nimi.
 	return chatCompletion.Choices[0].Message.Content
 }
 
-
 type CutVideoArgs struct {
-	StartMinutes     float64 `json:"start_minutes"`
-	StartSeconds     float64 `json:"start_seconds"`
-	DurationMinutes  float64 `json:"duration_minutes"`
-	DurationSeconds  float64 `json:"duration_seconds"`
+	StartMinutes    float64 `json:"start_minutes"`
+	StartSeconds    float64 `json:"start_seconds"`
+	DurationMinutes float64 `json:"duration_minutes"`
+	DurationSeconds float64 `json:"duration_seconds"`
 }
 
 func ParseCutArgs(msg string) (float64, float64, error) {
@@ -63,7 +62,7 @@ func ParseCutArgs(msg string) (float64, float64, error) {
 			{
 				Type: openai.F(openai.ChatCompletionToolTypeFunction),
 				Function: openai.F(openai.FunctionDefinitionParam{
-					Name:        openai.String("cut_video"),
+					Name: openai.String("cut_video"),
 					Description: openai.String(
 						`Cut video with subsecond level accuracy. Instructions are likely in English or Finnish.
 						Some examples:
@@ -128,4 +127,3 @@ func ParseCutArgs(msg string) (float64, float64, error) {
 
 	return startOnlySeconds, durationOnlySeconds, nil
 }
-

@@ -7,6 +7,7 @@ import (
 
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/handlers"
+	"golang.org/x/exp/slog"
 
 	tele "gopkg.in/telebot.v4"
 )
@@ -25,7 +26,7 @@ func RunTelegramBot() {
 	// bot.Handle(tele.OnMessageReaction, wrapHandler(bot, chain))
 	bot.Handle(tele.OnText, wrapHandler(bot, chain))
 
-	log.Println("Starting Telegram bot...")
+	slog.Info("Starting Telegram bot...")
 	bot.Start()
 }
 

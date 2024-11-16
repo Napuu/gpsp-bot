@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 )
 
@@ -11,7 +11,7 @@ type ConstructTextResponseHandler struct {
 }
 
 func (r *ConstructTextResponseHandler) Execute(m *Context) {
-	log.Println("Entering ConstructTextResponseHandler")
+	slog.Debug("Entering ConstructTextResponseHandler")
 
 	var responseText string
 	switch m.action {

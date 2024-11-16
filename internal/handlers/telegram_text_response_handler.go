@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 
 	tele "gopkg.in/telebot.v4"
 )
@@ -11,7 +11,7 @@ type TelegramTextResponseHandler struct {
 }
 
 func (r *TelegramTextResponseHandler) Execute(m *Context) {
-	log.Println("Entering TelegramTextResponseHandler")
+	slog.Debug("Entering TelegramTextResponseHandler")
 	if m.Service == Telegram {
 		if m.shouldReplyToMessage {
 			message := &tele.Message{

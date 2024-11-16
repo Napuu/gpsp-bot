@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 
 	tele "gopkg.in/telebot.v4"
 )
@@ -10,10 +10,9 @@ type TelegramVideoResponseHandler struct {
 	next ContextHandler
 }
 
-
 func (r *TelegramVideoResponseHandler) Execute(m *Context) {
-	log.Println("Entering TelegramVideoResponseHandler")
-	if (m.Service == Telegram) {
+	slog.Debug("Entering TelegramVideoResponseHandler")
+	if m.Service == Telegram {
 		chatId := tele.ChatID(m.chatId)
 
 		var videoPathToSend = m.originalVideoPath
@@ -22,7 +21,7 @@ func (r *TelegramVideoResponseHandler) Execute(m *Context) {
 		}
 
 		if len(videoPathToSend) > 0 {
-			m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(videoPathToSend)} )
+			m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(videoPathToSend)})
 			m.sendVideoSucceeded = true
 		}
 	}

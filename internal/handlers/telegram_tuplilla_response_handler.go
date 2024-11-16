@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/napuu/gpsp-bot/pkg/utils"
@@ -13,7 +14,7 @@ type TelegramTuplillaResponseHandler struct {
 }
 
 func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
-	log.Println("Entering TelegramTuplillaResponseHandler")
+	slog.Debug("Entering TelegramTuplillaResponseHandler")
 	if m.Service == Telegram && m.action == Tuplilla {
 		chatId := tele.ChatID(m.chatId)
 

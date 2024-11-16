@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
@@ -12,7 +12,7 @@ type VideoDownloadHandler struct {
 }
 
 func (u *VideoDownloadHandler) Execute(m *Context) {
-	log.Println("Entering VideoDownloadHandler")
+	slog.Debug("Entering VideoDownloadHandler")
 	if m.action == DownloadVideo || m.action == SearchVideo {
 		var videoString = m.url
 		if m.action == SearchVideo {

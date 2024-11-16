@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -11,20 +11,11 @@ import (
 	"github.com/google/uuid"
 )
 
-
 var (
-	proxyURLs     = strings.Split(os.Getenv("PROXY_URLS"), ";")
-	currentProxy  int
-	proxyMutex    sync.Mutex
+	proxyURLs    = strings.Split(os.Getenv("PROXY_URLS"), ";")
+	currentProxy int
+	proxyMutex   sync.Mutex
 )
-
-func simpleXOR(s string) int {
-	xor := 0
-	for _, c := range s {
-		xor ^= int(c)
-	}
-	return xor
-}
 
 func cycleProxy() string {
 	proxyMutex.Lock()
@@ -38,22 +29,21 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 	videoID := uuid.New().String()
 	filePath := fmt.Sprintf("/tmp/%s.mp4", videoID)
 
+	slog.Info("Downloading with no proxy")
 	if attemptDownload(url, filePath, "", targetSizeInMB) {
 		return filePath
 	}
 
 	for i := 0; i < len(proxyURLs); i++ {
 		proxy := cycleProxy()
-		targetID := simpleXOR(url)
-		log.Printf("yt-dlp trying with proxy \"%s\", target %x", proxy, targetID)
+		slog.Info(fmt.Sprintf("Downloading with no proxy failed, trying with %s", proxy))
 
 		if attemptDownload(url, filePath, proxy, targetSizeInMB) {
-			log.Printf("yt-dlp success with proxy %s, target %x", proxy, targetID)
 			return filePath
 		}
 	}
 
-	log.Printf("Failed to download video from URL %s after trying all proxies", url)
+	slog.Info("Downloading failed")
 	return ""
 }
 

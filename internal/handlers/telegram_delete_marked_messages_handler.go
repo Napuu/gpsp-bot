@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"log"
+	"log/slog"
 )
 
 type TelegramDeleteMarkedMessageHandler struct {
@@ -9,8 +10,8 @@ type TelegramDeleteMarkedMessageHandler struct {
 }
 
 func (r *TelegramDeleteMarkedMessageHandler) Execute(m *Context) {
-	log.Println("Entering TelegramDeleteMarkedMessageHandler")
-	if (m.Service == Telegram && m.shouldDeleteOriginalMessage) {
+	slog.Debug("Entering TelegramDeleteMarkedMessageHandler")
+	if m.Service == Telegram && m.shouldDeleteOriginalMessage {
 		err := m.TelebotContext.Delete()
 		if err != nil {
 			log.Println(err)

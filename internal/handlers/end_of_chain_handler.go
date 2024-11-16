@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 )
-type EndOfChainHandler struct {}
+
+type EndOfChainHandler struct{}
 
 func (h *EndOfChainHandler) Execute(m *Context) {
-	log.Println("Entering EndOfChainHandler")
+	slog.Debug("Entering EndOfChainHandler")
 	if m.doneTyping != nil {
-		log.Println("Closing doneTyping channel")
+		slog.Debug("Closing doneTyping channel")
 		close(m.doneTyping)
 	}
 

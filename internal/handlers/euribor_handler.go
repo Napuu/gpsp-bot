@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/napuu/gpsp-bot/internal/repository"
@@ -13,7 +13,7 @@ type EuriborHandler struct {
 }
 
 func (t *EuriborHandler) Execute(m *Context) {
-	log.Println("Entering EuriborHandler")
+	slog.Debug("Entering EuriborHandler")
 	if m.action == Euribor {
 		db, _ := repository.InitializeDB()
 		cachedRates, _ := repository.GetCachedRates(db)

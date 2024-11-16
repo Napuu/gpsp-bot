@@ -1,13 +1,13 @@
 package handlers
 
-import "log"
+import "log/slog"
 
 type MarkForDeletionHandler struct {
 	next ContextHandler
 }
 
 func (u *MarkForDeletionHandler) Execute(m *Context) {
-	log.Println("Entering MarkForDeletionHandler")
+	slog.Debug("Entering MarkForDeletionHandler")
 	if (m.action == DownloadVideo || m.action == SearchVideo) && m.sendVideoSucceeded {
 		m.shouldDeleteOriginalMessage = true
 	}

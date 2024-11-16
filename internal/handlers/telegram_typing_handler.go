@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	tele "gopkg.in/telebot.v4"
@@ -12,7 +12,7 @@ type TelegramTypingHandler struct {
 }
 
 func (t *TelegramTypingHandler) Execute(m *Context) {
-	log.Println("Entering TelegramTypingHandler")
+	slog.Debug("Entering TelegramTypingHandler")
 	if m.Service == Telegram && m.action != "" {
 		action := tele.Typing
 		if m.action == DownloadVideo || m.action == SearchVideo {
@@ -31,7 +31,7 @@ func (t *TelegramTypingHandler) Execute(m *Context) {
 				case <-m.doneTyping:
 					return
 				case <-ticker.C:
-					log.Println("Continue typing")
+					slog.Debug("Continue typing")
 					_ = m.TelebotContext.Notify(action)
 				}
 			}
