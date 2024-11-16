@@ -1,8 +1,6 @@
 package telebot
 
-import (
-	"strings"
-)
+import "strings"
 
 // Update object represents an incoming update.
 type Update struct {
@@ -356,11 +354,6 @@ func (b *Bot) ProcessContext(c Context) {
 	}
 	if u.DeletedBusinessMessages != nil {
 		b.handle(OnDeletedBusinessMessages, c)
-		return
-	}
-
-	if u.MessageReaction != nil {
-		b.handle(OnMessageReaction, c)
 		return
 	}
 }
