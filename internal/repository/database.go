@@ -77,7 +77,6 @@ func GetCachedRates(db *sql.DB) (*RateCache, error) {
 }
 
 func InsertRates(db *sql.DB, rates RateCache) error {
-	fmt.Println("inserting", rates)
 	_, err := db.Exec(`
 		INSERT INTO euribor_cache (last_fetched, date, three_months, six_months, twelve_months)
 		VALUES (?, ?, ?, ?, ?)`,
