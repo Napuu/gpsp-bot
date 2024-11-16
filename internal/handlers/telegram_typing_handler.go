@@ -12,31 +12,34 @@ type TelegramTypingHandler struct {
 }
 
 func (t *TelegramTypingHandler) Execute(m *Context) {
-    log.Println("Entering TelegramTypingHandler")
-    if m.Service == Telegram && (m.action == DownloadVideo || m.action == SearchVideo) {
-        m.doneTyping = make(chan struct{})
+	log.Println("Entering TelegramTypingHandler")
+	if m.Service == Telegram && m.action != "" {
+		action := tele.Typing
+		if m.action == DownloadVideo || m.action == SearchVideo {
+			action = tele.UploadingVideo
+		}
+		m.doneTyping = make(chan struct{})
 
-        go func() {
-            ticker := time.NewTicker(4 * time.Second)
-            defer ticker.Stop()
+		go func() {
+			ticker := time.NewTicker(4 * time.Second)
+			defer ticker.Stop()
 
-            _ = m.TelebotContext.Notify(tele.UploadingVideo)
+			_ = m.TelebotContext.Notify(action)
 
-            for {
-                select {
-                case <-m.doneTyping:
-                    return
-                case <-ticker.C:
-                                log.Println("Continue typing")
-                    _ = m.TelebotContext.Notify(tele.UploadingVideo)
-                }
-            }
-        }()
-    }
+			for {
+				select {
+				case <-m.doneTyping:
+					return
+				case <-ticker.C:
+					log.Println("Continue typing")
+					_ = m.TelebotContext.Notify(action)
+				}
+			}
+		}()
+	}
 
-    t.next.Execute(m)
+	t.next.Execute(m)
 }
-
 
 func (t *TelegramTypingHandler) SetNext(next ContextHandler) {
 	t.next = next

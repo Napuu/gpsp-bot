@@ -33,6 +33,8 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 			m.action = Tuplilla
 		case Ping:
 			m.action = Ping
+		case Euribor:
+			m.action = Euribor
 		}
 
 		m.parsedText = strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1)

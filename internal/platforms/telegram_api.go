@@ -19,20 +19,20 @@ func wrapHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) 
 }
 
 func RunTelegramBot() {
-    bot := getTelegramBot()
-    chain := chain.NewChainOfResponsibility()
+	bot := getTelegramBot()
+	chain := chain.NewChainOfResponsibility()
 
-		bot.Handle(tele.OnMessageReaction, wrapHandler(bot, chain))
-		bot.Handle(tele.OnText, wrapHandler(bot, chain))
+	// bot.Handle(tele.OnMessageReaction, wrapHandler(bot, chain))
+	bot.Handle(tele.OnText, wrapHandler(bot, chain))
 
-    log.Println("Starting Telegram bot...")
-    bot.Start()
+	log.Println("Starting Telegram bot...")
+	bot.Start()
 }
-
 
 func getTelegramBot() *tele.Bot {
 	pref := tele.Settings{
-		Token:  os.Getenv("TOKEN"),
+		Token:     os.Getenv("TOKEN"),
+		ParseMode: tele.ModeHTML,
 		Poller: &tele.LongPoller{
 			Timeout: 10 * time.Second,
 			AllowedUpdates: []string{

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"database/sql"
 
@@ -11,15 +12,11 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-type Rate struct {
-	Date  string
-	Value float64
-}
-
 type LatestEuriborRates struct {
-	ThreeMonths  Rate
-	SixMonths    Rate
-	TwelveMonths Rate
+	Date         time.Time
+	ThreeMonths  float64
+	SixMonths    float64
+	TwelveMonths float64
 }
 
 func ParseEuriborCSVFile(filePath string) LatestEuriborRates {
@@ -30,28 +27,36 @@ func ParseEuriborCSVFile(filePath string) LatestEuriborRates {
 	defer conn.Close()
 
 	query := fmt.Sprintf(`
-		CREATE TABLE euribor AS 
-		SELECT * FROM read_csv(
-			'%s',
-			header=false,
-			skip=4,
-			columns={'provider': 'VARCHAR', 'date': 'DATE', 'name': 'VARCHAR', 'value': 'VARCHAR'}
-		);
-		WITH latest_values AS (
-			SELECT name, 
-						 MAX(date) AS latest_date
-			FROM euribor
+		WITH data AS (
+			SELECT *
+			FROM read_csv(
+				'%s',
+				header=false,
+				skip=4,
+				columns={'provider': 'VARCHAR', 'date': 'DATE', 'name': 'VARCHAR', 'value': 'VARCHAR'}
+			)
 			WHERE value IS NOT NULL
 				AND name IN ('3 kk (tod.pv/360)', '6 kk (tod.pv/360)', '12 kk (tod.pv/360)')
-			GROUP BY name
+		),
+		latest_date AS (
+			SELECT MAX(date) AS latest_date
+			FROM data
+		),
+		latest_values AS (
+			SELECT
+				MAX(CASE WHEN name = '3 kk (tod.pv/360)' THEN CAST(REPLACE(value, ',', '.') AS DOUBLE) END) AS three_months_rate,
+				MAX(CASE WHEN name = '6 kk (tod.pv/360)' THEN CAST(REPLACE(value, ',', '.') AS DOUBLE) END) AS six_months_rate,
+				MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN CAST(REPLACE(value, ',', '.') AS DOUBLE) END) AS twelve_months_rate
+			FROM data
+			JOIN latest_date ON data.date = latest_date.latest_date
 		)
-		SELECT lv.name, 
-					lv.latest_date, 
-					CAST(REPLACE(e.value, ',', '.') AS DOUBLE) AS latest_value
-		FROM latest_values lv
-		JOIN euribor e 
-			ON lv.name = e.name AND lv.latest_date = e.date
-		ORDER BY lv.latest_date DESC;`, filePath)
+		SELECT 
+			latest_date.latest_date,
+			latest_values.three_months_rate,
+			latest_values.six_months_rate,
+			latest_values.twelve_months_rate
+		FROM latest_date
+		CROSS JOIN latest_values;`, filePath)
 
 	rows, err := conn.Query(query)
 	if err != nil {
@@ -61,26 +66,8 @@ func ParseEuriborCSVFile(filePath string) LatestEuriborRates {
 
 	var rates LatestEuriborRates
 	for rows.Next() {
-		var name string
-		var latestDate string
-		var latestValue float64
-
-		if err := rows.Scan(&name, &latestDate, &latestValue); err != nil {
+		if err := rows.Scan(&rates.Date, &rates.ThreeMonths, &rates.SixMonths, &rates.TwelveMonths); err != nil {
 			log.Fatalf("could not scan row: %v", err)
-		}
-
-		rate := Rate{
-			Date:  latestDate,
-			Value: latestValue,
-		}
-
-		switch name {
-		case "3 kk (tod.pv/360)":
-			rates.ThreeMonths = rate
-		case "6 kk (tod.pv/360)":
-			rates.SixMonths = rate
-		case "12 kk (tod.pv/360)":
-			rates.TwelveMonths = rate
 		}
 	}
 
@@ -136,7 +123,6 @@ func GetEuriborRates() LatestEuriborRates {
 	if err != nil {
 		log.Fatalf("could not create temporary file: %v", err)
 	}
-
 	DownloadEuriborCSVFile(tmpFile)
 
 	return ParseEuriborCSVFile(tmpFile.Name())

@@ -14,7 +14,8 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 	log.Println("Entering ConstructTextResponseHandler")
 
 	var responseText string
-	if m.action == Tuplilla {
+	switch m.action {
+	case Tuplilla:
 		if m.gotDubz {
 			responseText = fmt.Sprintf("Tuplat tuli 😎, %s", m.parsedText)
 		} else {
@@ -22,16 +23,28 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 			responseText = fmt.Sprintf("Ei tuplia 😿, %s", negated)
 		}
 		time.Sleep((time.Second * 5) - time.Since(m.lastCubeThrownTime))
-	}
-
-	if m.action == Ping {
+	case Ping:
 		responseText = "pong"
-	}
-
-	if (m.action == DownloadVideo || m.action == SearchVideo) && m.shouldNagAboutOriginalMessage {
-		responseText = "Hyvä linkki..."
-		m.replyToId = m.id
-		m.shouldReplyToMessage = true
+	case DownloadVideo:
+		fallthrough
+	case SearchVideo:
+		if m.shouldNagAboutOriginalMessage {
+			responseText = "Hyvä linkki..."
+			m.replyToId = m.id
+			m.shouldReplyToMessage = true
+		}
+	case Euribor:
+		responseText = fmt.Sprintf(
+			`
+<b>Euribor-korot</b> %s
+<b>12 kk</b>: %.3f %%
+<b>6 kk</b>: %.3f %%
+<b>3 kk</b>: %.3f %%`,
+			m.rates.Date.Format("02.01."),
+			m.rates.TwelveMonths,
+			m.rates.SixMonths,
+			m.rates.ThreeMonths,
+		)
 	}
 
 	m.textResponse = responseText

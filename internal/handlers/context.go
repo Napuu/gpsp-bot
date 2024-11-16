@@ -3,6 +3,7 @@ package handlers
 import (
 	"time"
 
+	"github.com/napuu/gpsp-bot/pkg/utils"
 	"gopkg.in/telebot.v4"
 )
 
@@ -26,6 +27,7 @@ const (
 	DownloadVideo Action = "dl"
 	SearchVideo   Action = "s"
 	Ping          Action = "ping"
+	Euribor       Action = "euribor"
 )
 
 type Context struct {
@@ -49,6 +51,8 @@ type Context struct {
 	gotDubz            bool
 	dubzNegation       chan string
 	lastCubeThrownTime time.Time
+
+	rates utils.LatestEuriborRates
 
 	TelebotContext telebot.Context
 	Telebot        *telebot.Bot
