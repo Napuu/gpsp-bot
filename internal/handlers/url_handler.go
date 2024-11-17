@@ -11,7 +11,7 @@ type URLHandler struct {
 
 func (u *URLHandler) Execute(m *Context) {
 	slog.Debug("Entering URLHandler")
-	urlRegex := `https?://[a-zA-Z0-9.-]+(:[0-9]{1,5})?(/[a-zA-Z0-9./?=&_-]*)?`
+	urlRegex := `https?://[a-zA-Z0-9.-]+(:[0-9]{1,5})?(/[a-zA-Z0-9./?=&_@+!*(),;%~-]*)?`
 	re := regexp.MustCompile(urlRegex)
 	match := re.FindString(m.parsedText)
 
