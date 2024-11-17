@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"log/slog"
 )
 
@@ -14,7 +13,7 @@ func (r *TelegramDeleteMarkedMessageHandler) Execute(m *Context) {
 	if m.Service == Telegram && m.shouldDeleteOriginalMessage {
 		err := m.TelebotContext.Delete()
 		if err != nil {
-			log.Println(err)
+			slog.Warn(err.Error())
 		}
 	}
 

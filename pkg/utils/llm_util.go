@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/openai/openai-go"
 )
@@ -33,7 +34,8 @@ Jaan on suomalainen miehen nimi.
 		Model: openai.F(openai.ChatModelGPT4o),
 	})
 	if err != nil {
-		panic(err.Error())
+		slog.Error(err.Error())
+		return "Hyvä prompt..."
 	}
 
 	return chatCompletion.Choices[0].Message.Content

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"log/slog"
 	"time"
 
@@ -21,7 +20,7 @@ func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
 		cube1Response, err := m.Telebot.Send(chatId, tele.Cube)
 
 		if err != nil {
-			log.Fatal(err)
+			slog.Error(err.Error())
 		}
 
 		time.Sleep(2 * time.Second)
@@ -29,7 +28,7 @@ func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
 		cube2Response, err := m.Telebot.Send(chatId, tele.Cube)
 
 		if err != nil {
-			log.Fatal(err)
+			slog.Error(err.Error())
 		}
 
 		if cube1Response.Dice.Value == cube2Response.Dice.Value {

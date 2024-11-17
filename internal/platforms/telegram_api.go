@@ -1,7 +1,6 @@
 package platforms
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -46,7 +45,7 @@ func getTelegramBot() *tele.Bot {
 
 	b, err := tele.NewBot(pref)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return b

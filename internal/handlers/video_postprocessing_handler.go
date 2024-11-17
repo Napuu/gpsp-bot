@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"os/exec"
 
@@ -43,7 +42,7 @@ func (u *VideoPostprocessingHandler) Execute(m *Context) {
 
 		err := cutVideo(m.originalVideoPath, filePath, startSeconds, durationSeconds)
 		if err != nil {
-			log.Println(err)
+			slog.Error(err.Error())
 		} else {
 			m.possiblyProcessedVideoPath = filePath
 		}
