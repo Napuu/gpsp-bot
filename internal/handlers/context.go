@@ -30,6 +30,22 @@ const (
 	Euribor       Action = "euribor"
 )
 
+const (
+	TuplillaDescription      ActionDescription = "Tuplilla..."
+	DownloadVideoDescription ActionDescription = "Lataa video"
+	SearchVideoDescription   ActionDescription = "Etsi ja lataa video YouTubesta"
+	PingDescription          ActionDescription = "Ping..."
+	EuriborDescription       ActionDescription = "Tuoreet Euribor-korot"
+)
+
+func VisibleCommands() map[Action]ActionDescription {
+	return map[Action]ActionDescription{
+		Tuplilla:      TuplillaDescription,
+		DownloadVideo: DownloadVideoDescription,
+		Euribor:       EuriborDescription,
+	}
+}
+
 type Context struct {
 	Service Service
 	rawText string

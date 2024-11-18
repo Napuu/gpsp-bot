@@ -18,9 +18,23 @@ func wrapHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) 
 	}
 }
 
+func TelebotCompatibleVisibleCommands() []tele.Command {
+	visible := handlers.VisibleCommands()
+	commands := make([]tele.Command, 0, len(visible))
+	for action, description := range visible {
+		commands = append(commands, tele.Command{
+			Text:        string(action),
+			Description: string(description),
+		})
+	}
+	return commands
+}
+
 func RunTelegramBot() {
 	bot := getTelegramBot()
 	chain := chain.NewChainOfResponsibility()
+
+	bot.SetCommands(TelebotCompatibleVisibleCommands())
 
 	// bot.Handle(tele.OnMessageReaction, wrapHandler(bot, chain))
 	bot.Handle(tele.OnText, wrapHandler(bot, chain))
