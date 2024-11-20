@@ -3,8 +3,9 @@ package handlers
 import (
 	"time"
 
+	dg "github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/pkg/utils"
-	"gopkg.in/telebot.v4"
+	tele "gopkg.in/telebot.v4"
 )
 
 type Service int
@@ -21,6 +22,7 @@ type ContextHandler interface {
 }
 
 type Action string
+type ActionDescription string
 
 const (
 	Tuplilla      Action = "tuplilla"
@@ -52,14 +54,14 @@ type Context struct {
 	// Message without action string and
 	// possibly related prefixes or suffixes
 	parsedText string
-	id         int64
-	replyToId  int64
+	id         string // Some services use string, some int, some int64. They're now strings at our context.
+	replyToId  string
 	// Must store separate from replyToId as
 	// replyToId = 0 might refer to first message
 	// or to no message at all
 	shouldReplyToMessage bool
 	isReply              bool
-	chatId               int64
+	chatId               string
 	action               Action
 	url                  string
 
@@ -70,8 +72,11 @@ type Context struct {
 
 	rates utils.LatestEuriborRates
 
-	TelebotContext telebot.Context
-	Telebot        *telebot.Bot
+	TelebotContext tele.Context
+	Telebot        *tele.Bot
+
+	DiscordSession *dg.Session
+	DiscordMessage *dg.MessageCreate
 
 	originalVideoPath             string
 	possiblyProcessedVideoPath    string

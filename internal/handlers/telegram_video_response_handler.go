@@ -3,6 +3,7 @@ package handlers
 import (
 	"log/slog"
 
+	"github.com/napuu/gpsp-bot/pkg/utils"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -13,7 +14,7 @@ type TelegramVideoResponseHandler struct {
 func (r *TelegramVideoResponseHandler) Execute(m *Context) {
 	slog.Debug("Entering TelegramVideoResponseHandler")
 	if m.Service == Telegram {
-		chatId := tele.ChatID(m.chatId)
+		chatId := tele.ChatID(utils.S2I(m.chatId))
 
 		var videoPathToSend = m.originalVideoPath
 		if len(m.possiblyProcessedVideoPath) > 0 {

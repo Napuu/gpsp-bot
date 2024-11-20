@@ -11,6 +11,7 @@ type HandlerChain struct {
 func NewChainOfResponsibility() *HandlerChain {
 	// Initial handler
 	telegramParser := &handlers.TelegramTelebotOnTextHandler{}
+	discordParser := &handlers.DiscordDiscordGoOnTextHandler{}
 
 	// Basic text message handling
 	genericMessageHandler := &handlers.GenericMessageHandler{}
@@ -20,6 +21,7 @@ func NewChainOfResponsibility() *HandlerChain {
 
 	// Typing indicator for telegram
 	telegramTypingHandler := &handlers.TelegramTypingHandler{}
+	discordTypingHandler := &handlers.DiscordTypingHandler{}
 
 	// Video processing handlers
 	videoCutArgsHandler := &handlers.VideoCutArgsHandler{}
@@ -38,14 +40,18 @@ func NewChainOfResponsibility() *HandlerChain {
 	telegramTextResponseHandler := &handlers.TelegramTextResponseHandler{}
 	telegramTuplillaResponseHandler := &handlers.TelegramTuplillaResponseHandler{}
 
+	discordTextResponseHandler := &handlers.DiscordTextResponseHandler{}
+
 	// Special handler that does not try to call the next handler in the chain
 	endOfChainHandler := &handlers.EndOfChainHandler{}
 
 	// Constructing the chain
-	telegramParser.SetNext(genericMessageHandler)
+	telegramParser.SetNext(discordParser)
+	discordParser.SetNext(genericMessageHandler)
 
 	genericMessageHandler.SetNext(urlParser)
-	urlParser.SetNext(telegramTypingHandler)
+	urlParser.SetNext(discordTypingHandler)
+	discordTypingHandler.SetNext(telegramTypingHandler)
 
 	telegramTypingHandler.SetNext(videoCutArgsHandler)
 
@@ -63,7 +69,8 @@ func NewChainOfResponsibility() *HandlerChain {
 	constructTextResponseHandler.SetNext(telegramDeleteMessageHandler)
 
 	telegramDeleteMessageHandler.SetNext(telegramTextResponseHandler)
-	telegramTextResponseHandler.SetNext(endOfChainHandler)
+	telegramTextResponseHandler.SetNext(discordTextResponseHandler)
+	discordTextResponseHandler.SetNext(endOfChainHandler)
 
 	// Return the initialized chain
 	return &HandlerChain{

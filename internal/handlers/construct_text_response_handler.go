@@ -36,15 +36,28 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 	case Euribor:
 		responseText = fmt.Sprintf(
 			`
-<b>Euribor-korot</b> %s
-<b>12 kk</b>: %.3f %%
-<b>6 kk</b>: %.3f %%
-<b>3 kk</b>: %.3f %%`,
+**Euribor-korot** %s
+**12 kk** %.3f %%
+**6 kk** %.3f %%
+**3 kk** %.3f %%`,
 			m.rates.Date.Format("02.01."),
 			m.rates.TwelveMonths,
 			m.rates.SixMonths,
 			m.rates.ThreeMonths,
 		)
+		if m.Service == Telegram {
+			responseText = fmt.Sprintf(
+				`
+<b>Euribor-korot</b> %s
+<b>12 kk</b>: %.3f %%
+<b>6 kk</b>: %.3f %%
+<b>3 kk</b>: %.3f %%`,
+				m.rates.Date.Format("02.01."),
+				m.rates.TwelveMonths,
+				m.rates.SixMonths,
+				m.rates.ThreeMonths,
+			)
+		}
 	}
 
 	m.textResponse = responseText

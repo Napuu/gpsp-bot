@@ -15,7 +15,7 @@ type TelegramTuplillaResponseHandler struct {
 func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
 	slog.Debug("Entering TelegramTuplillaResponseHandler")
 	if m.Service == Telegram && m.action == Tuplilla {
-		chatId := tele.ChatID(m.chatId)
+		chatId := tele.ChatID(utils.S2I(m.chatId))
 
 		cube1Response, err := m.Telebot.Send(chatId, tele.Cube)
 

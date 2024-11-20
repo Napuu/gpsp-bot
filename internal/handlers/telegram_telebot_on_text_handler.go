@@ -8,17 +8,19 @@ type TelegramTelebotOnTextHandler struct {
 
 func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
 	slog.Debug("Entering TelegramTelebotOnTextHandler")
-	c := m.TelebotContext
-	message := c.Message()
-	if message != nil {
-		m.rawText = c.Message().Text
-		m.id = int64(c.Message().ID)
-		m.isReply = c.Message().IsReply()
-		m.chatId = c.Chat().ID
+	if m.Service == Telegram {
+		c := m.TelebotContext
+		message := c.Message()
+		if message != nil {
+			m.rawText = c.Message().Text
+			m.id = string(rune(c.Message().ID))
+			m.isReply = c.Message().IsReply()
+			m.chatId = string(rune(c.Chat().ID))
 
-		if c.Message().IsReply() {
-			m.replyToId = int64(c.Message().ReplyTo.ID)
-			m.shouldReplyToMessage = true
+			if c.Message().IsReply() {
+				m.replyToId = string(rune(c.Message().ReplyTo.ID))
+				m.shouldReplyToMessage = true
+			}
 		}
 	}
 	telegramMessageParser.next.Execute(m)

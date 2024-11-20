@@ -11,7 +11,7 @@ import (
 	tele "gopkg.in/telebot.v4"
 )
 
-func wrapHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) error {
+func wrapTeleHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) error {
 	return func(c tele.Context) error {
 		chain.Process(&handlers.Context{TelebotContext: c, Telebot: bot, Service: handlers.Telegram})
 		return nil
@@ -37,7 +37,7 @@ func RunTelegramBot() {
 	bot.SetCommands(TelebotCompatibleVisibleCommands())
 
 	// bot.Handle(tele.OnMessageReaction, wrapHandler(bot, chain))
-	bot.Handle(tele.OnText, wrapHandler(bot, chain))
+	bot.Handle(tele.OnText, wrapTeleHandler(bot, chain))
 
 	slog.Info("Starting Telegram bot...")
 	bot.Start()
