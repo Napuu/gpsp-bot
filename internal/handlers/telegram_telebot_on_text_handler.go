@@ -1,6 +1,9 @@
 package handlers
 
-import "log/slog"
+import (
+	"log/slog"
+	"strconv"
+)
 
 type TelegramTelebotOnTextHandler struct {
 	next ContextHandler
@@ -13,9 +16,9 @@ func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
 		message := c.Message()
 		if message != nil {
 			m.rawText = c.Message().Text
-			m.id = string(rune(c.Message().ID))
+			m.id = strconv.Itoa(c.Message().ID)
 			m.isReply = c.Message().IsReply()
-			m.chatId = string(rune(c.Chat().ID))
+			m.chatId = strconv.Itoa(int(c.Chat().ID))
 
 			if c.Message().IsReply() {
 				m.replyToId = string(rune(c.Message().ReplyTo.ID))
