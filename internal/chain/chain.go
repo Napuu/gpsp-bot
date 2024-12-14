@@ -10,18 +10,16 @@ type HandlerChain struct {
 
 func NewChainOfResponsibility() *HandlerChain {
 	// Initial handler
-	telegramParser := &handlers.TelegramTelebotOnTextHandler{}
-	discordParser := &handlers.DiscordDiscordGoOnTextHandler{}
+	onTextHandler := &handlers.OnTextHandler{}
 
 	// Basic text message handling
 	genericMessageHandler := &handlers.GenericMessageHandler{}
 
 	// URL parsing from the message
-	urlParser := &handlers.URLHandler{}
+	urlParsingHandler := &handlers.URLParsingHandler{}
 
 	// Typing indicator for telegram
-	telegramTypingHandler := &handlers.TelegramTypingHandler{}
-	discordTypingHandler := &handlers.DiscordTypingHandler{}
+	typingHandler := &handlers.TypingHandler{}
 
 	// Video processing handlers
 	videoCutArgsHandler := &handlers.VideoCutArgsHandler{}
@@ -36,45 +34,40 @@ func NewChainOfResponsibility() *HandlerChain {
 	constructTextResponseHandler := &handlers.ConstructTextResponseHandler{}
 
 	telegramVideoResponseHandler := &handlers.TelegramVideoResponseHandler{}
-	telegramDeleteMessageHandler := &handlers.TelegramDeleteMarkedMessageHandler{}
-	telegramTextResponseHandler := &handlers.TelegramTextResponseHandler{}
-	telegramTuplillaResponseHandler := &handlers.TelegramTuplillaResponseHandler{}
-
-	discordTextResponseHandler := &handlers.DiscordTextResponseHandler{}
+	deleteMessageHandler := &handlers.DeleteMessageHandler{}
+	textResponseHandler := &handlers.TextResponseHandler{}
+	tuplillaResponseHandler := &handlers.TuplillaResponseHandler{}
 
 	// Special handler that does not try to call the next handler in the chain
 	endOfChainHandler := &handlers.EndOfChainHandler{}
 
 	// Constructing the chain
-	telegramParser.SetNext(discordParser)
-	discordParser.SetNext(genericMessageHandler)
+	onTextHandler.SetNext(genericMessageHandler)
 
-	genericMessageHandler.SetNext(urlParser)
-	urlParser.SetNext(discordTypingHandler)
-	discordTypingHandler.SetNext(telegramTypingHandler)
+	genericMessageHandler.SetNext(urlParsingHandler)
+	urlParsingHandler.SetNext(typingHandler)
 
-	telegramTypingHandler.SetNext(videoCutArgsHandler)
+	typingHandler.SetNext(videoCutArgsHandler)
 
 	videoCutArgsHandler.SetNext(videoDownloadHandler)
 	videoDownloadHandler.SetNext(videoPostprocessingHandler)
 	videoPostprocessingHandler.SetNext(euriborHandler)
 
-	euriborHandler.SetNext(telegramTuplillaResponseHandler)
+	euriborHandler.SetNext(tuplillaResponseHandler)
 
 	// Response and cleaning handlers
-	telegramTuplillaResponseHandler.SetNext(telegramVideoResponseHandler)
+	tuplillaResponseHandler.SetNext(telegramVideoResponseHandler)
 	telegramVideoResponseHandler.SetNext(markForNaggingHandler)
 	markForNaggingHandler.SetNext(markForDeletionHandler)
 	markForDeletionHandler.SetNext(constructTextResponseHandler)
-	constructTextResponseHandler.SetNext(telegramDeleteMessageHandler)
+	constructTextResponseHandler.SetNext(deleteMessageHandler)
 
-	telegramDeleteMessageHandler.SetNext(telegramTextResponseHandler)
-	telegramTextResponseHandler.SetNext(discordTextResponseHandler)
-	discordTextResponseHandler.SetNext(endOfChainHandler)
+	deleteMessageHandler.SetNext(textResponseHandler)
+	textResponseHandler.SetNext(endOfChainHandler)
 
 	// Return the initialized chain
 	return &HandlerChain{
-		rootParser: telegramParser,
+		rootParser: onTextHandler,
 	}
 }
 

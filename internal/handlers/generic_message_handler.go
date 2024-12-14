@@ -11,6 +11,7 @@ type GenericMessageHandler struct {
 }
 
 func (mp *GenericMessageHandler) Execute(m *Context) {
+	slog.Debug("rawText: " + m.rawText)
 	var extractedAction string
 	var textWithoutPrefixOrSuffix string
 	textNoPrefix, hasPrefix := strings.CutPrefix(m.rawText, "/")

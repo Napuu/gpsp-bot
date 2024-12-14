@@ -7,24 +7,39 @@ import (
 	tele "gopkg.in/telebot.v4"
 )
 
-type TelegramTypingHandler struct {
+type TypingHandler struct {
 	next ContextHandler
 }
 
-func (t *TelegramTypingHandler) Execute(m *Context) {
-	slog.Debug("Entering TelegramTypingHandler")
-	if m.Service == Telegram && m.action != "" {
+func sendTyping(m *Context) {
+	var err error
+
+	switch m.Service {
+	case Telegram:
 		action := tele.Typing
 		if m.action == DownloadVideo || m.action == SearchVideo {
 			action = tele.UploadingVideo
 		}
+		err = m.TelebotContext.Notify(action)
+	case Discord:
+		err = m.DiscordSession.ChannelTyping(m.chatId)
+	}
+
+	if err != nil {
+		slog.Error(err.Error())
+	}
+}
+
+func (t *TypingHandler) Execute(m *Context) {
+	slog.Debug("Entering TypingHandler")
+	if m.action != "" {
 		m.doneTyping = make(chan struct{})
 
 		go func() {
 			ticker := time.NewTicker(4 * time.Second)
 			defer ticker.Stop()
 
-			_ = m.TelebotContext.Notify(action)
+			sendTyping(m)
 
 			for {
 				select {
@@ -32,7 +47,7 @@ func (t *TelegramTypingHandler) Execute(m *Context) {
 					return
 				case <-ticker.C:
 					slog.Debug("Continue typing")
-					_ = m.TelebotContext.Notify(action)
+					sendTyping(m)
 				}
 			}
 		}()
@@ -41,6 +56,6 @@ func (t *TelegramTypingHandler) Execute(m *Context) {
 	t.next.Execute(m)
 }
 
-func (t *TelegramTypingHandler) SetNext(next ContextHandler) {
+func (t *TypingHandler) SetNext(next ContextHandler) {
 	t.next = next
 }

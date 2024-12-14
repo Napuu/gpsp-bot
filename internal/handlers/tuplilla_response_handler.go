@@ -8,12 +8,12 @@ import (
 	tele "gopkg.in/telebot.v4"
 )
 
-type TelegramTuplillaResponseHandler struct {
+type TuplillaResponseHandler struct {
 	next ContextHandler
 }
 
-func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
-	slog.Debug("Entering TelegramTuplillaResponseHandler")
+func (r *TuplillaResponseHandler) Execute(m *Context) {
+	slog.Debug("Entering TuplillaResponseHandler")
 	if m.Service == Telegram && m.action == Tuplilla {
 		chatId := tele.ChatID(utils.S2I(m.chatId))
 
@@ -45,6 +45,6 @@ func (r *TelegramTuplillaResponseHandler) Execute(m *Context) {
 	r.next.Execute(m)
 }
 
-func (u *TelegramTuplillaResponseHandler) SetNext(next ContextHandler) {
+func (u *TuplillaResponseHandler) SetNext(next ContextHandler) {
 	u.next = next
 }

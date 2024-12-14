@@ -5,11 +5,11 @@ import (
 	"regexp"
 )
 
-type URLHandler struct {
+type URLParsingHandler struct {
 	next ContextHandler
 }
 
-func (u *URLHandler) Execute(m *Context) {
+func (u *URLParsingHandler) Execute(m *Context) {
 	slog.Debug("Entering URLHandler")
 	urlRegex := `https?://[a-zA-Z0-9.-]+(:[0-9]{1,5})?(/[a-zA-Z0-9./?=&_@+!*(),;%~-]*)?`
 	re := regexp.MustCompile(urlRegex)
@@ -20,6 +20,6 @@ func (u *URLHandler) Execute(m *Context) {
 	u.next.Execute(m)
 }
 
-func (u *URLHandler) SetNext(next ContextHandler) {
+func (u *URLParsingHandler) SetNext(next ContextHandler) {
 	u.next = next
 }

@@ -6,13 +6,14 @@ import (
 	"strings"
 )
 
-type TelegramTelebotOnTextHandler struct {
+type OnTextHandler struct {
 	next ContextHandler
 }
 
-func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
-	slog.Debug("Entering TelegramTelebotOnTextHandler")
-	if m.Service == Telegram {
+func (mp *OnTextHandler) Execute(m *Context) {
+	slog.Debug("Entering OnTextHandler")
+	switch m.Service {
+	case Telegram:
 		c := m.TelebotContext
 		message := c.Message()
 		if message != nil {
@@ -26,10 +27,21 @@ func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
 				m.shouldReplyToMessage = true
 			}
 		}
+	case Discord:
+		message := m.DiscordMessage
+		if message != nil {
+			m.rawText = message.Content
+			m.id = message.ID
+			if message.ReferencedMessage != nil {
+				m.replyToId = message.ReferencedMessage.ID
+				m.shouldReplyToMessage = true
+			}
+			m.chatId = message.ChannelID
+		}
 	}
-	telegramMessageParser.next.Execute(m)
+	mp.next.Execute(m)
 }
 
-func (mp *TelegramTelebotOnTextHandler) SetNext(next ContextHandler) {
+func (mp *OnTextHandler) SetNext(next ContextHandler) {
 	mp.next = next
 }
