@@ -3,6 +3,7 @@ package handlers
 import (
 	"log/slog"
 	"strconv"
+	"strings"
 )
 
 type TelegramTelebotOnTextHandler struct {
@@ -15,7 +16,7 @@ func (telegramMessageParser *TelegramTelebotOnTextHandler) Execute(m *Context) {
 		c := m.TelebotContext
 		message := c.Message()
 		if message != nil {
-			m.rawText = c.Message().Text
+			m.rawText = strings.Replace(c.Message().Text, "@"+m.Telebot.Me.Username, "", 1)
 			m.id = strconv.Itoa(c.Message().ID)
 			m.isReply = c.Message().IsReply()
 			m.chatId = strconv.Itoa(int(c.Chat().ID))

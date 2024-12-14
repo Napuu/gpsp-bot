@@ -50,6 +50,8 @@ func VisibleCommands() map[Action]ActionDescription {
 
 type Context struct {
 	Service Service
+	// The original message without any parsing
+	// (except on Telegram events, the possible "@<botname>"" is removed)
 	rawText string
 	// Message without action string and
 	// possibly related prefixes or suffixes
