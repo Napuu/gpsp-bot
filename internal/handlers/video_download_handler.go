@@ -16,7 +16,7 @@ func (u *VideoDownloadHandler) Execute(m *Context) {
 	if m.action == DownloadVideo || m.action == SearchVideo {
 		var videoString = m.url
 		if m.action == SearchVideo {
-			videoString = fmt.Sprintf("ytsearch:\"%s\"", videoString)
+			videoString = fmt.Sprintf("ytsearch:\"%s\"", m.parsedText)
 		}
 		path := utils.DownloadVideo(videoString, 5)
 
