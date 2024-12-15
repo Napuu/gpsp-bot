@@ -80,8 +80,11 @@ type Context struct {
 	DiscordSession *dg.Session
 	DiscordMessage *dg.MessageCreate
 
-	originalVideoPath             string
-	possiblyProcessedVideoPath    string
+	originalVideoPath string
+
+	// Location of the video that is finally sent.
+	// Different handlers might edit this during the processing.
+	finalVideoPath                string
 	textResponse                  string
 	sendVideoSucceeded            bool
 	startSeconds                  chan float64

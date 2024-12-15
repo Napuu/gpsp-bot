@@ -17,6 +17,8 @@ func (r *DeleteMessageHandler) Execute(m *Context) {
 		switch m.Service {
 		case Telegram:
 			err = m.TelebotContext.Delete()
+		case Discord:
+			err = m.DiscordSession.ChannelMessageDelete(m.chatId, m.id)
 		}
 
 		if err != nil {

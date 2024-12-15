@@ -21,6 +21,7 @@ func (u *VideoDownloadHandler) Execute(m *Context) {
 		path := utils.DownloadVideo(videoString, 5)
 
 		m.originalVideoPath = path
+		m.finalVideoPath = path
 	}
 	u.next.Execute(m)
 }

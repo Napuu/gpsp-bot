@@ -54,6 +54,7 @@ func attemptDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
 		"-S", "codec:h264",
 		"--merge-output-format", "mp4",
 		"--recode", "mp4",
+		"--max-filesize", "500M", // just in case
 		"-o", filePath,
 		url,
 	}

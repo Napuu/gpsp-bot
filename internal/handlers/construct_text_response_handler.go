@@ -16,13 +16,17 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 	var responseText string
 	switch m.action {
 	case Tuplilla:
-		if m.gotDubz {
-			responseText = fmt.Sprintf("Tuplat tuli 😎, %s", m.parsedText)
-		} else {
-			negated := <-m.dubzNegation
-			responseText = fmt.Sprintf("Ei tuplia 😿, %s", negated)
+		// Telegram is sort of special case of this as
+		// it is the only platform with built-in dies
+		if m.Service == Telegram {
+			if m.gotDubz {
+				responseText = fmt.Sprintf("Tuplat tuli 😎, %s", m.parsedText)
+			} else {
+				negated := <-m.dubzNegation
+				responseText = fmt.Sprintf("Ei tuplia 😿, %s", negated)
+			}
+			time.Sleep((time.Second * 5) - time.Since(m.lastCubeThrownTime))
 		}
-		time.Sleep((time.Second * 5) - time.Since(m.lastCubeThrownTime))
 	case Ping:
 		responseText = "pong"
 	case DownloadVideo:
