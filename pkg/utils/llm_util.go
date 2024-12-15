@@ -6,11 +6,17 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
+func getClient() *openai.Client {
+	return openai.NewClient(option.WithAPIKey(config.FromEnv().OPENAI_TOKEN))
+}
+
 func GetNegation(input string) string {
-	client := openai.NewClient()
+	client := getClient()
 	chatCompletion, err := client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(
@@ -35,7 +41,7 @@ Jaan on suomalainen miehen nimi.
 	})
 	if err != nil {
 		slog.Error(err.Error())
-		return "Hyvä prompt..."
+		return "hyvä prompti..."
 	}
 
 	return chatCompletion.Choices[0].Message.Content
@@ -49,7 +55,7 @@ type CutVideoArgs struct {
 }
 
 func ParseCutArgs(msg string) (float64, float64, error) {
-	client := openai.NewClient()
+	client := getClient()
 	if len(msg) <= 3 {
 		return 0, 0, nil
 	}

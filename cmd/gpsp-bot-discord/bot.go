@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
+	platforms.EnsureBotCanStart()
 	platforms.RunDiscordBot()
 }

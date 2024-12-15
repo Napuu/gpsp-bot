@@ -10,8 +10,8 @@ func (h *DeleteDownloadedVideoHandler) Execute(m *Context) {
 	if len(m.originalVideoPath) > 0 {
 		os.Remove(m.originalVideoPath)
 	}
-	if len(m.possiblyProcessedVideoPath ) > 0 {
-		os.Remove(m.possiblyProcessedVideoPath)
+	if len(m.finalVideoPath) > 0 {
+		os.Remove(m.finalVideoPath)
 	}
 
 	h.next.Execute(m)

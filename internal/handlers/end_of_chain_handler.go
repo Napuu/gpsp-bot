@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"log/slog"
+
+	"github.com/napuu/gpsp-bot/internal/config"
+	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
 type EndOfChainHandler struct{}
@@ -12,6 +15,8 @@ func (h *EndOfChainHandler) Execute(m *Context) {
 		slog.Debug("Closing doneTyping channel")
 		close(m.doneTyping)
 	}
+
+	utils.CleanupTmpDir(config.FromEnv().YTDLP_TMP_DIR)
 
 }
 
