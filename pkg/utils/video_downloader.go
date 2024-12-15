@@ -3,16 +3,16 @@ package utils
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/napuu/gpsp-bot/internal/config"
 )
 
 var (
-	proxyURLs    = strings.Split(os.Getenv("PROXY_URLS"), ";")
+	proxyURLs    = strings.Split(config.FromEnv().PROXY_URLS, ";")
 	currentProxy int
 	proxyMutex   sync.Mutex
 )
@@ -26,8 +26,9 @@ func cycleProxy() string {
 }
 
 func DownloadVideo(url string, targetSizeInMB uint64) string {
+	tmpPath := config.FromEnv().YTDLP_TMP_DIR
 	videoID := uuid.New().String()
-	filePath := fmt.Sprintf("/tmp/%s.mp4", videoID)
+	filePath := fmt.Sprintf("%s/%s.mp4", tmpPath, videoID)
 
 	slog.Info("Downloading with no proxy")
 	if attemptDownload(url, filePath, "", targetSizeInMB) {

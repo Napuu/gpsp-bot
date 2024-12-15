@@ -8,6 +8,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/internal/chain"
+	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 )
 
@@ -27,22 +28,8 @@ func wrapDiscoHandler(chain *chain.HandlerChain) func(s *discordgo.Session, m *d
 	}
 }
 
-// func wrapHandler(s *discordgo.Session, chain *chain.HandlerChain, m *discordgo.MessageCreate) {
-// 	// Ignore all messages created by the bot itself
-// 	if m.Author.ID == s.State.User.ID {
-// 		return
-// 	}
-
-// 	// Wrap the context
-// 	chain.Process(&handlers.Context{
-// 		DiscordSession: s,
-// 		DiscordMessage: m,
-// 		Service:        handlers.Discord,
-// 	})
-// }
-
 func RunDiscordBot() {
-	token := os.Getenv("DISCORD_TOKEN")
+	token := config.FromEnv().DISCORD_TOKEN
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		slog.Error("Error creating Discord session", "error", err)

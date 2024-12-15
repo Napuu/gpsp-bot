@@ -1,10 +1,10 @@
 package platforms
 
 import (
-	"os"
 	"time"
 
 	"github.com/napuu/gpsp-bot/internal/chain"
+	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"golang.org/x/exp/slog"
 
@@ -45,7 +45,7 @@ func RunTelegramBot() {
 
 func getTelegramBot() *tele.Bot {
 	pref := tele.Settings{
-		Token:     os.Getenv("TOKEN"),
+		Token:     config.FromEnv().TELEGRAM_TOKEN,
 		ParseMode: tele.ModeHTML,
 		Poller: &tele.LongPoller{
 			Timeout: 10 * time.Second,

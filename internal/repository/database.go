@@ -3,10 +3,10 @@ package repository
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
@@ -16,7 +16,7 @@ type RateCache struct {
 }
 
 func InitializeDB() (*sql.DB, error) {
-	databaseLocation := os.Getenv("DATABASE_FILE")
+	databaseLocation := config.FromEnv().DATABASE_FILE
 	db, err := sql.Open("sqlite3", databaseLocation)
 	if err != nil {
 		return nil, err
