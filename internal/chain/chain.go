@@ -33,7 +33,7 @@ func NewChainOfResponsibility() *HandlerChain {
 	markForNaggingHandler := &handlers.MarkForNaggingHandler{}
 	constructTextResponseHandler := &handlers.ConstructTextResponseHandler{}
 
-	telegramVideoResponseHandler := &handlers.TelegramVideoResponseHandler{}
+	videoResponseHandler := &handlers.VideoResponseHandler{}
 	deleteMessageHandler := &handlers.DeleteMessageHandler{}
 	textResponseHandler := &handlers.TextResponseHandler{}
 	tuplillaResponseHandler := &handlers.TuplillaResponseHandler{}
@@ -56,8 +56,8 @@ func NewChainOfResponsibility() *HandlerChain {
 	euriborHandler.SetNext(tuplillaResponseHandler)
 
 	// Response and cleaning handlers
-	tuplillaResponseHandler.SetNext(telegramVideoResponseHandler)
-	telegramVideoResponseHandler.SetNext(markForNaggingHandler)
+	tuplillaResponseHandler.SetNext(videoResponseHandler)
+	videoResponseHandler.SetNext(markForNaggingHandler)
 	markForNaggingHandler.SetNext(markForDeletionHandler)
 	markForDeletionHandler.SetNext(constructTextResponseHandler)
 	constructTextResponseHandler.SetNext(deleteMessageHandler)
