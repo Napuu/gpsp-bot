@@ -19,6 +19,8 @@ type LatestEuriborRates struct {
 	TwelveMonths float64
 }
 
+const REPORTS_URL = "https://reports.suomenpankki.fi/WebForms/ReportViewerPage.aspx?report=/tilastot/markkina-_ja_hallinnolliset_korot/euribor_korot_xml_long_fi&output=html"
+
 func ParseEuriborCSVFile(filePath string) LatestEuriborRates {
 	conn, err := sql.Open("duckdb", "")
 	if err != nil {
@@ -94,8 +96,7 @@ func DownloadEuriborCSVFile(tmpFile *os.File) {
 	if err != nil {
 		log.Fatalf("could not create page: %v", err)
 	}
-	suomepankkiReportsURL := "https://reports.suomenpankki.fi/WebForms/ReportViewerPage.aspx?report=/tilastot/markkina-_ja_hallinnolliset_korot/euribor_korot_xml_long_fi&output=html"
-	if _, err = page.Goto(suomepankkiReportsURL); err != nil {
+	if _, err = page.Goto(REPORTS_URL); err != nil {
 		log.Fatalf("could not goto: %v", err)
 	}
 	if err = page.Locator("a[title=Export]").Click(); err != nil {
