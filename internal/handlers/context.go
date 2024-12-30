@@ -6,6 +6,8 @@ import (
 	dg "github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 	tele "gopkg.in/telebot.v4"
+	"maunium.net/go/mautrix"
+	"maunium.net/go/mautrix/event"
 )
 
 type Service int
@@ -13,6 +15,7 @@ type Service int
 const (
 	Telegram Service = iota + 1
 	Discord
+	Matrix
 	// Matrix // not supported, perhaps at one point
 )
 
@@ -79,6 +82,9 @@ type Context struct {
 
 	DiscordSession *dg.Session
 	DiscordMessage *dg.MessageCreate
+
+	MatrixEvent  *event.Event
+	MatrixClient *mautrix.Client
 
 	originalVideoPath string
 

@@ -4,6 +4,10 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/napuu/gpsp-bot/internal/config"
+	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
 type OnTextHandler struct {
@@ -12,6 +16,7 @@ type OnTextHandler struct {
 
 func (mp *OnTextHandler) Execute(m *Context) {
 	slog.Debug("Entering OnTextHandler")
+	cfg := config.FromEnv()
 	switch m.Service {
 	case Telegram:
 		c := m.TelebotContext
@@ -37,6 +42,18 @@ func (mp *OnTextHandler) Execute(m *Context) {
 				m.shouldReplyToMessage = true
 			}
 			m.chatId = message.ChannelID
+		}
+	case Matrix:
+		message := m.MatrixEvent
+		isOldMessage := int(time.Now().UnixMilli()-message.Timestamp) > utils.S2I(cfg.MATRIX_OLD_MESSAGE_THRESHOLD_MILLIS)
+		if message != nil && !isOldMessage {
+			m.rawText = message.Content.AsMessage().Body
+			m.id = string(message.ID)
+			m.chatId = string(message.RoomID)
+			if message.Content.AsMessage().RelatesTo != nil {
+				m.replyToId = message.Content.AsMessage().RelatesTo.InReplyTo.EventID.String()
+				m.shouldReplyToMessage = true
+			}
 		}
 	}
 	mp.next.Execute(m)
