@@ -40,6 +40,7 @@ no dubz: Ei tuplia 😿, ei tehdä asiaa X
 ```
 PROXY_URLS="localhost:1235;localhost:1234" \
   YTDLP_TMP_DIR=/tmp/yt-dlp \
+  EURIBOR_GRAPH_DIR=/tmp/euribor \
   DATABASE_FILE=/opt/euribor.db \
   MISTRAL_TOKEN=<mistral token> \
   TELEGRAM_TOKEN=<telegram token> \

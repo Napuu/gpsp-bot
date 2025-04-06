@@ -62,7 +62,8 @@ type Context struct {
 	dubzNegation       chan string
 	lastCubeThrownTime time.Time
 
-	rates utils.LatestEuriborRates
+	rates     utils.LatestEuriborRates
+	chartPath string
 
 	TelebotContext tele.Context
 	Telebot        *tele.Bot
