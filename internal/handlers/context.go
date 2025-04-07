@@ -62,8 +62,7 @@ type Context struct {
 	dubzNegation       chan string
 	lastCubeThrownTime time.Time
 
-	rates     utils.LatestEuriborRates
-	chartPath string
+	rates utils.LatestEuriborRates
 
 	TelebotContext tele.Context
 	Telebot        *tele.Bot
@@ -76,6 +75,7 @@ type Context struct {
 	// Location of the video that is finally sent.
 	// Different handlers might edit this during the processing.
 	finalVideoPath                string
+	finalImagePath                string
 	textResponse                  string
 	sendVideoSucceeded            bool
 	startSeconds                  chan float64

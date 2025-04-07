@@ -7,7 +7,6 @@ import (
 	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/internal/repository"
 	"github.com/napuu/gpsp-bot/pkg/utils"
-	tele "gopkg.in/telebot.v4"
 )
 
 type EuriborHandler struct {
@@ -41,11 +40,9 @@ func (t *EuriborHandler) Execute(m *Context) {
 		tmpPath := config.FromEnv().EURIBOR_GRAPH_DIR
 		var path = tmpPath + "/" + time.Now().Format("2006-01-02") + ".jpg"
 		utils.GenerateLine(data.History, path)
-		chatId := tele.ChatID(utils.S2I(m.chatId))
-		m.Telebot.Send(chatId, &tele.Photo{File: tele.FromDisk(path)})
 
 		m.rates = data.Latest
-		m.chartPath = path
+		m.finalImagePath = path
 	}
 
 	t.next.Execute(m)
