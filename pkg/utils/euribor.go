@@ -220,7 +220,7 @@ func GetRatesFromCSV(filePath string, startDate time.Time) []EuriborRateEntry {
 			date,
 			MAX(CASE WHEN name = '3 kk (tod.pv/360)' THEN rate END) AS threemonths,
 			MAX(CASE WHEN name = '6 kk (tod.pv/360)' THEN rate END) AS sixmonths,
-			MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN rate END) AS twelwemonths,
+			MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN rate END) AS twelvemonths,
 		FROM interest_rates
 		WHERE
 			rate IS NOT NULL AND
