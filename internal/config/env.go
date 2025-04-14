@@ -19,8 +19,8 @@ type Config struct {
 
 func FromEnv() Config {
 	cfg := Config{
-		YTDLP_TMP_DIR:     "/tmp",
-		EURIBOR_GRAPH_DIR: "/tmp/euribor",
+		YTDLP_TMP_DIR:     "/tmp/ytdlp",
+		EURIBOR_GRAPH_DIR: "/tmp/euribor-graphs",
 		EURIBOR_CSV_DIR:   "/tmp/euribor-exports",
 	}
 	v := reflect.ValueOf(&cfg).Elem()
