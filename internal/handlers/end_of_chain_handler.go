@@ -18,6 +18,10 @@ func (h *EndOfChainHandler) Execute(m *Context) {
 	if m.action == DownloadVideo {
 		utils.CleanupTmpDir(config.FromEnv().YTDLP_TMP_DIR)
 	}
+	if m.action == Euribor {
+		utils.CleanupTmpDir(config.FromEnv().EURIBOR_GRAPH_DIR)
+		utils.CleanupTmpDir(config.FromEnv().EURIBOR_CSV_DIR)
+	}
 
 }
 
