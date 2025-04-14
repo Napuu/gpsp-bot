@@ -97,7 +97,7 @@ func GenerateLine(data []EuriborRateEntry, outputPath string) error {
 		charts.WithAnimation(false),
 		charts.WithTitleOpts(opts.Title{Title: "Euribor Rates - Last 30 Days"}),
 		charts.WithXAxisOpts(opts.XAxis{Name: "Date"}),
-		charts.WithYAxisOpts(opts.YAxis{Name: "Rate (%)", Max: maxRate + 0.1, Min: minRate - 0.1}),
+		charts.WithYAxisOpts(opts.YAxis{Name: "Rate (%)", Max: fmt.Sprintf("%.1f", maxRate+0.1), Min: fmt.Sprintf("%.1f", minRate-0.1)}),
 	)
 
 	// Add axis data (dates)
