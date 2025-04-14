@@ -12,16 +12,16 @@ type Config struct {
 	MISTRAL_TOKEN     string
 	YTDLP_TMP_DIR     string
 	EURIBOR_GRAPH_DIR string
-	DATABASE_FILE     string
 	PROXY_URLS        string
 	ENABLED_FEATURES  string
+	EURIBOR_CSV_DIR   string
 }
 
 func FromEnv() Config {
 	cfg := Config{
 		YTDLP_TMP_DIR:     "/tmp",
 		EURIBOR_GRAPH_DIR: "/tmp/euribor",
-		DATABASE_FILE:     "/tmp/cache.db",
+		EURIBOR_CSV_DIR:   "/tmp/euribor-exports",
 	}
 	v := reflect.ValueOf(&cfg).Elem()
 

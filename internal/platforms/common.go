@@ -28,4 +28,5 @@ func VerifyEnabledCommands() {
 func EnsureBotCanStart() {
 	utils.EnsureTmpDirExists(config.FromEnv().YTDLP_TMP_DIR)
 	utils.EnsureTmpDirExists(config.FromEnv().EURIBOR_GRAPH_DIR)
+	utils.EnsureTmpDirExists(config.FromEnv().EURIBOR_CSV_DIR)
 }

@@ -9,7 +9,6 @@ require (
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/google/uuid v1.6.0
 	github.com/marcboeker/go-duckdb v1.8.3
-	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/playwright-community/playwright-go v0.4802.0
 	golang.org/x/exp v0.0.0-20250215185904-eff6e970281f
 	gopkg.in/telebot.v4 v4.0.0-beta.4

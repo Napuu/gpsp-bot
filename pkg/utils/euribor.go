@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
@@ -17,38 +18,11 @@ import (
 
 const REPORTS_URL = "https://reports.suomenpankki.fi/WebForms/ReportViewerPage.aspx?report=/tilastot/markkina-_ja_hallinnolliset_korot/euribor_korot_xml_long_fi&output=html"
 
-type LatestEuriborRates struct {
+type EuriborRateEntry struct {
 	Date         time.Time
 	ThreeMonths  float64
 	SixMonths    float64
 	TwelveMonths float64
-}
-
-type EuriborRateEntry struct {
-	Date time.Time
-	Name string
-	Rate float64
-}
-
-type EuriborData struct {
-	Latest   LatestEuriborRates
-	History  []EuriborRateEntry
-	FilePath string
-}
-
-func GetEuriborData() EuriborData {
-	tmpFile, err := os.CreateTemp("", "euribor-*.csv")
-	if err != nil {
-		log.Fatalf("could not create temporary file: %v", err)
-	}
-
-	DownloadEuriborCSVFile(tmpFile)
-
-	return EuriborData{
-		Latest:   ParseEuriborCSVFile(tmpFile.Name()),
-		History:  ParseEuriborHistory(tmpFile.Name()),
-		FilePath: tmpFile.Name(),
-	}
 }
 
 func GenerateLine(data []EuriborRateEntry, outputPath string) error {
@@ -61,7 +35,9 @@ func GenerateLine(data []EuriborRateEntry, outputPath string) error {
 		if _, exists := dateMap[dateStr]; !exists {
 			dateMap[dateStr] = map[string]float64{}
 		}
-		dateMap[dateStr][entry.Name] = entry.Rate
+		dateMap[dateStr]["3 kk (tod.pv/360)"] = entry.ThreeMonths
+		dateMap[dateStr]["6 kk (tod.pv/360)"] = entry.SixMonths
+		dateMap[dateStr]["12 kk (tod.pv/360)"] = entry.TwelveMonths
 	}
 
 	// Sort dates
@@ -120,7 +96,7 @@ func GenerateLine(data []EuriborRateEntry, outputPath string) error {
 	return nil
 }
 
-func DownloadEuriborCSVFile(tmpFile *os.File) {
+func DownloadEuriborCSVFile(filePath string) {
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatalf("could not start playwright: %v", err)
@@ -145,7 +121,7 @@ func DownloadEuriborCSVFile(tmpFile *os.File) {
 	if err != nil {
 		log.Fatalf("could not trigger download: %v", err)
 	}
-	if err = download.SaveAs(tmpFile.Name()); err != nil {
+	if err = download.SaveAs(filePath); err != nil {
 		log.Fatalf("could not save file: %v", err)
 	}
 	if err = browser.Close(); err != nil {
@@ -156,92 +132,100 @@ func DownloadEuriborCSVFile(tmpFile *os.File) {
 	}
 }
 
-func ParseEuriborCSVFile(filePath string) LatestEuriborRates {
-	conn, err := sql.Open("duckdb", "")
+func isLatestCSVOlderThan(dirPath string, maxAge time.Duration) (bool, error) {
+	files, err := os.ReadDir(dirPath)
 	if err != nil {
-		log.Fatalf("could not open DuckDB: %v", err)
+		return false, err
 	}
-	defer conn.Close()
 
-	query := fmt.Sprintf(`
-		WITH data AS (
-			SELECT *
-			FROM read_csv(
-				'%s',
-				header=false,
-				skip=4,
-				columns={'provider': 'VARCHAR', 'date': 'DATE', 'name': 'VARCHAR', 'value': 'VARCHAR'}
-			)
-			WHERE value IS NOT NULL
-				AND name IN ('3 kk (tod.pv/360)', '6 kk (tod.pv/360)', '12 kk (tod.pv/360)')
-		),
-		latest_date AS (
-			SELECT MAX(date) AS latest_date
-			FROM data
-		),
-		latest_values AS (
-			SELECT
-				MAX(CASE WHEN name = '3 kk (tod.pv/360)' THEN CAST(REPLACE(value, ',', '.') AS DOUBLE) END) AS three_months_rate,
-				MAX(CASE WHEN name = '6 kk (tod.pv/360)' THEN CAST(REPLACE(value, ',', '.') AS DOUBLE) END) AS six_months_rate,
-				MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN CAST(REPLACE(value, ',', '.') AS DOUBLE) END) AS twelve_months_rate
-			FROM data
-			JOIN latest_date ON data.date = latest_date.latest_date
-		)
-		SELECT 
-			latest_date.latest_date,
-			latest_values.three_months_rate,
-			latest_values.six_months_rate,
-			latest_values.twelve_months_rate
-		FROM latest_date
-		CROSS JOIN latest_values;`, filePath)
-
-	rows, err := conn.Query(query)
-	if err != nil {
-		log.Fatalf("could not query DuckDB: %v", err)
-	}
-	defer rows.Close()
-
-	var rates LatestEuriborRates
-	for rows.Next() {
-		if err := rows.Scan(&rates.Date, &rates.ThreeMonths, &rates.SixMonths, &rates.TwelveMonths); err != nil {
-			log.Fatalf("could not scan row: %v", err)
+	var latestFile os.FileInfo
+	for _, file := range files {
+		if file.Type().IsRegular() && strings.HasSuffix(file.Name(), ".csv") {
+			info, err := file.Info()
+			if err != nil {
+				return false, err
+			}
+			if latestFile == nil || info.ModTime().After(latestFile.ModTime()) {
+				latestFile = info
+			}
 		}
 	}
 
-	if err := rows.Err(); err != nil {
-		log.Fatalf("error iterating rows: %v", err)
+	if latestFile == nil {
+		return false, fmt.Errorf("no csv files found in %s", dirPath)
 	}
 
-	return rates
+	maxAgeAgo := time.Now().Add(-maxAge)
+	return latestFile.ModTime().Before(maxAgeAgo), nil
 }
 
-func ParseEuriborHistory(filePath string) []EuriborRateEntry {
+func ShouldFetchCSV(dirPath string, maxAge time.Duration) bool {
+	history := GetRatesFromCSV(dirPath, time.Now().AddDate(0, -1, 0))
+
+	today := time.Now()
+	for _, entry := range history {
+		if entry.Date.Year() == today.Year() && entry.Date.Month() == today.Month() && entry.Date.Day() == today.Day() {
+			return false
+		}
+	}
+
+	latestFileStale, err := isLatestCSVOlderThan(dirPath, maxAge)
+	if err != nil {
+		return true
+	}
+
+	if latestFileStale {
+		return true
+	}
+
+	return false
+}
+
+func GetRatesFromCSV(filePath string, startDate time.Time) []EuriborRateEntry {
 	conn, err := sql.Open("duckdb", "")
 	if err != nil {
 		log.Fatalf("could not open DuckDB: %v", err)
 	}
 	defer conn.Close()
 
-	query := fmt.Sprintf(`
-		WITH data AS (
+	files, err := os.ReadDir(filePath)
+	if err != nil {
+		log.Fatalf("could not read directory: %v", err)
+	}
+
+	if len(files) == 0 {
+		return []EuriborRateEntry{}
+	}
+
+	query := `
+		WITH
+		  raw_interest_rates AS (
 			SELECT *
-			FROM read_csv(
-				'%s',
-				header=false,
-				skip=4,
-				columns={'provider': 'VARCHAR', 'date': 'DATE', 'name': 'VARCHAR', 'value': 'VARCHAR'}
+			FROM read_csv_auto("` + strings.TrimSuffix(filePath, "/") + `/*",
+			  HEADER=false,
+			  DELIM=',',
+			  QUOTE='"',
+			  SKIP=3,
+			  COLUMNS={'provider': 'VARCHAR', 'date': 'DATE', 'name': 'VARCHAR', 'rate': 'VARCHAR'}
 			)
-			WHERE value IS NOT NULL
-				AND name IN ('3 kk (tod.pv/360)', '6 kk (tod.pv/360)', '12 kk (tod.pv/360)')
-		)
-		SELECT 
-			date,
+		  ),
+		  interest_rates AS (
+			SELECT provider,
+			CAST(date AS DATE) as date,
 			name,
-			CAST(REPLACE(value, ',', '.') AS DOUBLE) AS rate
-		FROM data
-		WHERE date >= CURRENT_DATE - INTERVAL 30 DAY
-		ORDER BY date;
-	`, filePath)
+			CAST(REPLACE(rate, ',', '.') AS DOUBLE) AS rate
+			FROM raw_interest_rates
+		  )
+		SELECT
+			date,
+			MAX(CASE WHEN name = '3 kk (tod.pv/360)' THEN rate END) AS threemonths,
+			MAX(CASE WHEN name = '6 kk (tod.pv/360)' THEN rate END) AS sixmonths,
+			MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN rate END) AS twelwemonths,
+		FROM interest_rates
+		WHERE
+			rate IS NOT NULL AND
+			date >= '` + startDate.Format("2006-01-02") + `' GROUP BY date ORDER BY DATE DESC;
+	`
 
 	rows, err := conn.Query(query)
 	if err != nil {
@@ -252,7 +236,7 @@ func ParseEuriborHistory(filePath string) []EuriborRateEntry {
 	var history []EuriborRateEntry
 	for rows.Next() {
 		var entry EuriborRateEntry
-		if err := rows.Scan(&entry.Date, &entry.Name, &entry.Rate); err != nil {
+		if err := rows.Scan(&entry.Date, &entry.ThreeMonths, &entry.SixMonths, &entry.TwelveMonths); err != nil {
 			log.Fatalf("could not scan row: %v", err)
 		}
 		history = append(history, entry)
