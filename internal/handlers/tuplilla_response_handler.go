@@ -40,6 +40,10 @@ func (r *TuplillaResponseHandler) Execute(m *Context) {
 				m.gotDubz = true
 			}
 
+			if cube1Response.Dice.Value == 6 && cube2Response.Dice.Value == 1 {
+				m.gotHyvaSuomi = true
+			}
+
 			m.lastCubeThrownTime = time.Now()
 			m.dubzNegation = make(chan string)
 			go func() {

@@ -61,6 +61,7 @@ type Context struct {
 
 	doneTyping         chan struct{}
 	gotDubz            bool
+	gotHyvaSuomi       bool
 	dubzNegation       chan string
 	lastCubeThrownTime time.Time
 
