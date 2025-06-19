@@ -2,6 +2,7 @@ package platforms
 
 import (
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/napuu/gpsp-bot/internal/chain"
@@ -13,7 +14,23 @@ import (
 
 func wrapTeleHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) error {
 	return func(c tele.Context) error {
-		chain.Process(&handlers.Context{TelebotContext: c, Telebot: bot, Service: handlers.Telegram})
+		var replyToId string
+		isReply := c.Message().ReplyTo != nil
+		if isReply {
+			replyToId = strconv.Itoa(c.Message().ReplyTo.ID)
+		}
+
+		chain.Process(&handlers.Context{
+			TelebotContext:      c,
+			Telebot:             bot,
+			Service:             handlers.Telegram,
+			RawText:             c.Message().Text,
+			ID:                  strconv.Itoa(c.Message().ID),
+			ChatID:              strconv.FormatInt(c.Message().Chat.ID, 10),
+			IsReply:             isReply,
+			ReplyToID:           replyToId,
+			ShouldReplyToMessage: isReply,
+		})
 		return nil
 	}
 }

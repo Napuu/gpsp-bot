@@ -30,7 +30,7 @@ func (r *TextResponseHandler) Execute(m *Context) {
 		if m.shouldReplyToMessage {
 			message := &discordgo.MessageReference{
 				ChannelID: m.chatId,
-				MessageID: m.id,
+				MessageID: m.replyToId,
 			}
 			m.DiscordSession.ChannelMessageSendReply(m.chatId, m.textResponse, message)
 		} else if m.textResponse != "" {

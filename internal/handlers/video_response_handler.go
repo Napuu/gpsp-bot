@@ -20,9 +20,17 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 	if len(m.finalVideoPath) > 0 {
 		switch m.Service {
 		case Telegram:
-			chatId := tele.ChatID(utils.S2I(m.chatId))
-
-			m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)})
+			videoFile := &tele.Video{File: tele.FromDisk(m.finalVideoPath)}
+			if m.shouldReplyToMessage {
+				replyToMsg := &tele.Message{
+					Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
+					ID:   utils.S2I(m.replyToId),
+				}
+				m.Telebot.Reply(replyToMsg, videoFile)
+			} else {
+				chatId := tele.ChatID(utils.S2I(m.chatId))
+				m.Telebot.Send(chatId, videoFile)
+			}
 			m.sendVideoSucceeded = true
 		case Discord:
 			file, err := os.Open(m.finalVideoPath)
@@ -38,7 +46,7 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 			}
 
 			message := &discordgo.MessageSend{
-				Content: "",
+				Content: "", // Content can be empty for file messages
 				Files: []*discordgo.File{
 					{
 						Name:        "video.mp4", // this apparently doesn't matter
@@ -46,6 +54,13 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 						Reader:      buf,
 					},
 				},
+			}
+
+			if m.shouldReplyToMessage {
+				message.Reference = &discordgo.MessageReference{
+					MessageID: m.replyToId,
+					ChannelID: m.chatId,
+				}
 			}
 
 			_, err = m.DiscordSession.ChannelMessageSendComplex(m.chatId, message)

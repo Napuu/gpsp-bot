@@ -17,10 +17,22 @@ func wrapDiscoHandler(chain *chain.HandlerChain) func(s *discordgo.Session, m *d
 		}
 
 		// Wrap the context
+		var replyToId string
+		isReply := m.ReferencedMessage != nil
+		if isReply {
+			replyToId = m.ReferencedMessage.ID
+		}
+
 		chain.Process(&handlers.Context{
-			DiscordSession: s,
-			DiscordMessage: m,
-			Service:        handlers.Discord,
+			DiscordSession:      s,
+			DiscordMessage:      m,
+			Service:             handlers.Discord,
+			RawText:             m.Content,
+			ID:                  m.ID,
+			ChatID:              m.ChannelID,
+			IsReply:             isReply,
+			ReplyToID:           replyToId,
+			ShouldReplyToMessage: isReply,
 		})
 	}
 }
