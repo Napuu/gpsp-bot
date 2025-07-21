@@ -134,14 +134,15 @@ func checkAndCompress(input string, maxSizeMB float64) string {
 	return input
 }
 
-func isVP9(file string) bool {
+func isProblematicCodec(file string) bool {
 	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=nokey=1", file)
 	output, err := cmd.Output()
 	if err != nil {
 		slog.Error(fmt.Sprintf("Error checking file %s: %v\n", file, err))
 		return false
 	}
-	return strings.Contains(string(output), "vp9")
+	outputStr := string(output)
+	return strings.Contains(outputStr, "vp9") || strings.Contains(outputStr, "av1")
 }
 
 func (u *VideoPostprocessingHandler) Execute(m *Context) {
@@ -161,8 +162,8 @@ func (u *VideoPostprocessingHandler) Execute(m *Context) {
 			}
 		}
 
-		if utils.FileExists(m.finalVideoPath) && isVP9(m.finalVideoPath) {
-			// Reencode to H.264 to get rid of VP9
+		if utils.FileExists(m.finalVideoPath) && isProblematicCodec(m.finalVideoPath) {
+			// Reencode to H.264 to get rid of VP9/AV1
 			h264Path := fmt.Sprintf("%s.h264.mp4", m.finalVideoPath)
 			err := reencodeToH264(m.finalVideoPath, h264Path)
 			if err != nil {
