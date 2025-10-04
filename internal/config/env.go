@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ type Config struct {
 	PROXY_URLS        string
 	ENABLED_FEATURES  string
 	EURIBOR_CSV_DIR   string
+	ALWAYS_RE_ENCODE  bool
 }
 
 func FromEnv() Config {
@@ -22,6 +24,7 @@ func FromEnv() Config {
 		YTDLP_TMP_DIR:     "/tmp/ytdlp",
 		EURIBOR_GRAPH_DIR: "/tmp/euribor-graphs",
 		EURIBOR_CSV_DIR:   "/tmp/euribor-exports",
+		ALWAYS_RE_ENCODE:  false,
 	}
 	v := reflect.ValueOf(&cfg).Elem()
 
@@ -30,7 +33,14 @@ func FromEnv() Config {
 		envVar := field.Name
 		envValue, exists := os.LookupEnv(envVar)
 		if exists {
-			v.Field(i).SetString(envValue)
+			if field.Type == reflect.TypeOf(cfg.ALWAYS_RE_ENCODE) {
+				truthyValues := []string{"true", "yes", "1"}
+				valueToLower := strings.ToLower(envValue)
+				isTruthy := slices.Contains(truthyValues, valueToLower)
+				v.Field(i).SetBool(isTruthy)
+			} else {
+				v.Field(i).SetString(envValue)
+			}
 		}
 	}
 

@@ -14,6 +14,8 @@ Use `PROXY_URLS` environment variable to provide list of available SOCKS5-proxie
 
 This command requires [yt-dlp](https://github.com/yt-dlp/yt-dlp) to be available at `PATH`. For downloads to keep working, you should run `yt-dlp -U` so it is running the latest available release.
 
+If `ALWAYS_RE_ENCODE` is set to true, videos are always reencoded to H.264 to get rid of VP9/AV1. Fruit phones seem to have issues with these and also the check is not always reliable.
+
 ### /euribor
 
 Values are fetched from Suomen Pankki dashboards with Playwright and cached at SQLite db located at `DATABASE_FILE`. Playwright used because the "official" dashboards available through APIs are not updated as quickly as this one dashboard.

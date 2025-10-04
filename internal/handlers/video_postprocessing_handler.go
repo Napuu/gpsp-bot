@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
@@ -60,6 +61,7 @@ func reencodeToH264(input, output string) error {
 		"-movflags", "+faststart", // helpful for web compatibility
 		output,
 	}
+	slog.Debug("Re-encoding to H.264", "args", args)
 
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdout = nil
@@ -162,7 +164,7 @@ func (u *VideoPostprocessingHandler) Execute(m *Context) {
 			}
 		}
 
-		if utils.FileExists(m.finalVideoPath) && isProblematicCodec(m.finalVideoPath) {
+		if utils.FileExists(m.finalVideoPath) && (isProblematicCodec(m.finalVideoPath) || config.FromEnv().ALWAYS_RE_ENCODE) {
 			// Reencode to H.264 to get rid of VP9/AV1
 			h264Path := fmt.Sprintf("%s.h264.mp4", m.finalVideoPath)
 			err := reencodeToH264(m.finalVideoPath, h264Path)
