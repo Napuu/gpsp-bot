@@ -22,7 +22,15 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 		case Telegram:
 			chatId := tele.ChatID(utils.S2I(m.chatId))
 
-			m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)})
+			if m.shouldReplyToMessage {
+				message := &tele.Message{
+					Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
+					ID:   utils.S2I(m.replyToId),
+				}
+				m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)}, &tele.SendOptions{ReplyTo: message})
+			} else {
+				m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)})
+			}
 			m.sendVideoSucceeded = true
 		case Discord:
 			file, err := os.Open(m.finalVideoPath)
@@ -46,6 +54,13 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 						Reader:      buf,
 					},
 				},
+			}
+
+			if m.shouldReplyToMessage {
+				message.Reference = &discordgo.MessageReference{
+					ChannelID: m.chatId,
+					MessageID: m.id,
+				}
 			}
 
 			_, err = m.DiscordSession.ChannelMessageSendComplex(m.chatId, message)
