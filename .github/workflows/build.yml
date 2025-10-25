@@ -13,6 +13,8 @@ jobs:
   test:
     name: Run tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
@@ -31,6 +33,8 @@ jobs:
     name: Build for ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
