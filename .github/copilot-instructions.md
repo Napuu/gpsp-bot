@@ -1,7 +1,7 @@
 # Copilot Instructions for gpsp-bot
 
 ## Repository Overview
-**gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go` (33 lines). External deps: yt-dlp, ffmpeg, chromium/playwright, DuckDB (requires CGO).
+**gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go` (33 lines). External dependencies: yt-dlp, ffmpeg, chromium/playwright, DuckDB (requires CGO).
 
 **Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` (22 files) process messages. `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM).
 
@@ -28,7 +28,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 **Vet**: `go vet ./...`  
 **Dependencies**: `go mod download` or `go mod tidy`
 
-**Run**: `ENABLED_FEATURES=ping ./gpsp-bot <telegram|discord>` (needs TELEGRAM_TOKEN or DISCORD_TOKEN)  
+**Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN)  
 **Container**: `podman build -t gpsp-bot . && podman run -e ENABLED_FEATURES=ping -e TELEGRAM_TOKEN=<token> gpsp-bot telegram`
 
 **Critical**: CGO required (DuckDB). Bot panics if ENABLED_FEATURES empty/invalid or missing platform token. No linter configs exist—use standard Go tools only.
@@ -39,7 +39,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 1. **test** job: Go 1.23.0, runs `go test -v ./...`
 2. **build** job (after test): Matrix for linux-amd64 and linux-arm64, sets CGO_ENABLED=1, installs cross-compiler for arm64, uploads artifacts (30d retention)
 
-**PR requirement**: Tests must pass. arm64 build failures = missing cross-compiler.
+**PR requirement**: Tests must pass. arm64 build failures are typically caused by missing cross-compiler.
 
 ## Common Pitfalls
 
@@ -70,4 +70,4 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 4. For cross-compile changes: verify amd64 and arm64 builds
 5. Update README.md if user-facing changes
 
-**Trust these instructions.** Only search if incomplete or incorrect.
+**These instructions are verified and up-to-date.** Search for additional context only when needed.
