@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -8,9 +9,15 @@ import (
 	"syscall"
 
 	"github.com/napuu/gpsp-bot/internal/platforms"
+	"github.com/napuu/gpsp-bot/internal/version"
 )
 
 func main() {
+	if len(os.Args) >= 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		fmt.Println(version.Version)
+		return
+	}
+
 	platforms.EnsureBotCanStart()
 	platforms.VerifyEnabledCommands()
 	if len(os.Args) == 1 {
