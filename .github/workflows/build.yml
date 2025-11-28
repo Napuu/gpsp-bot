@@ -8,6 +8,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to embed in the binary'
+        required: false
+        type: string
+      retention_days:
+        description: 'Number of days to retain artifacts'
+        required: false
+        type: number
+        default: 30
 
 jobs:
   test:
@@ -60,7 +71,12 @@ jobs:
 
       - name: Set version
         id: version
-        run: echo "VERSION=$(date -u +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(date -u +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build binary
         env:
@@ -77,4 +93,4 @@ jobs:
         with:
           name: gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }}
           path: gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }}
-          retention-days: 30
+          retention-days: ${{ inputs.retention_days || 30 }}

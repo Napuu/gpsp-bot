@@ -9,72 +9,12 @@ on:
         type: string
 
 jobs:
-  test:
-    name: Run tests
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23.0'
-
-      - name: Run tests
-        run: |
-          go test -v ./...
-
   build:
-    name: Build for ${{ matrix.goos }}-${{ matrix.goarch }}
-    runs-on: ubuntu-latest
-    needs: test
     if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: arm64
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23.0'
-
-      - name: Install cross-compilation dependencies for arm64
-        if: matrix.goarch == 'arm64'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 1
-          CC: ${{ matrix.goarch == 'arm64' && 'aarch64-linux-gnu-gcc' || 'gcc' }}
-          CXX: ${{ matrix.goarch == 'arm64' && 'aarch64-linux-gnu-g++' || 'g++' }}
-        run: |
-          go build -ldflags "-X github.com/napuu/gpsp-bot/internal/version.Version=${{ inputs.version }}" -o gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }} gpsp-bot.go
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }}
-          retention-days: 1
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ inputs.version }}
+      retention_days: 1
 
   create-release:
     name: Create GitHub Release
