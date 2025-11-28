@@ -58,6 +58,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
+      - name: Set version
+        id: version
+        run: echo "VERSION=$(date -u +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+
       - name: Build binary
         env:
           GOOS: ${{ matrix.goos }}
@@ -66,7 +70,7 @@ jobs:
           CC: ${{ matrix.goarch == 'arm64' && 'aarch64-linux-gnu-gcc' || 'gcc' }}
           CXX: ${{ matrix.goarch == 'arm64' && 'aarch64-linux-gnu-g++' || 'g++' }}
         run: |
-          go build -o gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }} gpsp-bot.go
+          go build -ldflags "-X github.com/napuu/gpsp-bot/internal/version.Version=${{ steps.version.outputs.VERSION }}" -o gpsp-bot-${{ matrix.goos }}-${{ matrix.goarch }} gpsp-bot.go
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
