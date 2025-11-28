@@ -1,0 +1,63 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: false
+        type: string
+
+jobs:
+  prepare:
+    name: Prepare version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+    steps:
+      - name: Set version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=$(date -u +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: prepare
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      retention_days: 1
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare, build]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.version }}
+          name: Release ${{ needs.prepare.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/gpsp-bot-linux-amd64/gpsp-bot-linux-amd64
+            artifacts/gpsp-bot-linux-arm64/gpsp-bot-linux-arm64
