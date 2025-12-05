@@ -63,8 +63,8 @@ func TestVersionCommand(t *testing.T) {
 		t.Errorf("Expected action %q, got %q", Version, ctx.action)
 	}
 
-	// Verify the response was set to the version
-	expectedResponse := version.Version
+	// Verify the response was set to the human-readable version
+	expectedResponse := version.GetHumanReadableVersion()
 	if ctx.textResponse != expectedResponse {
 		t.Errorf("Expected text response %q, got %q", expectedResponse, ctx.textResponse)
 	}

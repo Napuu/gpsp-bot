@@ -38,7 +38,7 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 	case Ping:
 		responseText = "pong"
 	case Version:
-		responseText = version.Version
+		responseText = version.GetHumanReadableVersion()
 	case DownloadVideo:
 		if m.shouldNagAboutOriginalMessage {
 			responseText = "Hyvä linkki..."
