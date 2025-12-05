@@ -14,7 +14,7 @@ import (
 
 func main() {
 	if len(os.Args) >= 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
-		fmt.Println(version.Version)
+		fmt.Println(version.GetHumanReadableVersion())
 		return
 	}
 
