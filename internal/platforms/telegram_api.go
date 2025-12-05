@@ -21,7 +21,7 @@ func wrapTeleHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Conte
 func TelebotCompatibleVisibleCommands() []tele.Command {
 	commands := make([]tele.Command, 0, len(config.EnabledFeatures()))
 	for _, action := range config.EnabledFeatures() {
-		if handlers.Action(action) == handlers.Ping {
+		if handlers.Action(action) == handlers.Ping || handlers.Action(action) == handlers.Version {
 			continue
 		}
 		commands = append(commands, tele.Command{
