@@ -29,6 +29,7 @@ const (
 	DownloadVideo Action = "dl"
 	Ping          Action = "ping"
 	Euribor       Action = "euribor"
+	Version       Action = "version"
 )
 
 var ActionMap = map[Action]ActionDescription{
@@ -36,6 +37,7 @@ var ActionMap = map[Action]ActionDescription{
 	DownloadVideo: "Lataa video",
 	Euribor:       "Tuoreet Euribor-korot",
 	Ping:          "Ping",
+	Version:       "Version",
 }
 
 type Context struct {

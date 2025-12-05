@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/napuu/gpsp-bot/internal/version"
 )
 
 type ConstructTextResponseHandler struct {
@@ -35,6 +37,8 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 		}
 	case Ping:
 		responseText = "pong"
+	case Version:
+		responseText = version.Version
 	case DownloadVideo:
 		if m.shouldNagAboutOriginalMessage {
 			responseText = "Hyvä linkki..."
