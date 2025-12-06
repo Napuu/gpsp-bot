@@ -8,15 +8,18 @@ import (
 )
 
 type Config struct {
-	DISCORD_TOKEN     string
-	TELEGRAM_TOKEN    string
-	MISTRAL_TOKEN     string
-	YTDLP_TMP_DIR     string
-	EURIBOR_GRAPH_DIR string
-	PROXY_URLS        string
-	ENABLED_FEATURES  string
-	EURIBOR_CSV_DIR   string
-	ALWAYS_RE_ENCODE  bool
+	DISCORD_TOKEN      string
+	TELEGRAM_TOKEN     string
+	MATRIX_TOKEN       string
+	MATRIX_HOMESERVER  string
+	MATRIX_USER_ID     string
+	MISTRAL_TOKEN      string
+	YTDLP_TMP_DIR      string
+	EURIBOR_GRAPH_DIR  string
+	PROXY_URLS         string
+	ENABLED_FEATURES   string
+	EURIBOR_CSV_DIR    string
+	ALWAYS_RE_ENCODE   bool
 }
 
 func FromEnv() Config {

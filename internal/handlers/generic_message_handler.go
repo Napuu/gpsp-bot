@@ -16,7 +16,6 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 	slog.Debug("rawText: " + m.rawText)
 	var extractedAction string
 	var textWithoutPrefixOrSuffix string
-
 	prefixes := []string{"/", "!"}
 	textNoPrefix := ""
 	hasPrefix := false

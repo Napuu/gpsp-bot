@@ -2,11 +2,15 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/pkg/utils"
+	"maunium.net/go/mautrix"
+	"maunium.net/go/mautrix/event"
+	"maunium.net/go/mautrix/id"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -50,6 +54,41 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 			_, err = m.DiscordSession.ChannelMessageSendComplex(m.chatId, message)
 			if err != nil {
 				slog.Debug(err.Error())
+			}
+		case Matrix:
+			if m.MatrixClient != nil && *m.MatrixClient != nil {
+				client := (*m.MatrixClient).(*mautrix.Client)
+				
+				data, err := os.ReadFile(m.finalImagePath)
+				if err != nil {
+					slog.Error("Failed to read image file", "error", err)
+					break
+				}
+
+				uploaded, err := client.UploadMedia(context.Background(), mautrix.ReqUploadMedia{
+					Content:       bytes.NewReader(data),
+					ContentLength: int64(len(data)),
+					ContentType:   "image/jpeg",
+				})
+				if err != nil {
+					slog.Error("Failed to upload image to Matrix", "error", err)
+					break
+				}
+
+				content := &event.MessageEventContent{
+					MsgType: event.MsgImage,
+					Body:    "image.jpg",
+					URL:     uploaded.ContentURI.CUString(),
+					Info: &event.FileInfo{
+						MimeType: "image/jpeg",
+						Size:     len(data),
+					},
+				}
+
+				_, err = client.SendMessageEvent(context.Background(), id.RoomID(m.chatId), event.EventMessage, content)
+				if err != nil {
+					slog.Error("Failed to send image message", "error", err)
+				}
 			}
 		}
 	}

@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"maunium.net/go/mautrix/event"
 )
 
 type OnTextHandler struct {
@@ -38,6 +40,21 @@ func (mp *OnTextHandler) Execute(m *Context) {
 				m.shouldReplyToMessage = true
 			}
 			m.chatId = message.ChannelID
+		}
+	case Matrix:
+		if m.MatrixEvent != nil && *m.MatrixEvent != nil {
+			evt := (*m.MatrixEvent).(*event.Event)
+			content := evt.Content.AsMessage()
+			if content != nil {
+				m.rawText = content.Body
+			}
+			m.id = evt.ID.String()
+			m.chatId = evt.RoomID.String()
+			
+			if relatesTo := content.GetRelatesTo(); relatesTo != nil && relatesTo.GetReplyTo() != "" {
+				m.replyToId = relatesTo.GetReplyTo().String()
+				m.shouldReplyToMessage = true
+			}
 		}
 	}
 	mp.next.Execute(m)

@@ -13,7 +13,7 @@ type Service int
 const (
 	Telegram Service = iota + 1
 	Discord
-	// Matrix // not supported, perhaps at one point
+	Matrix
 )
 
 type ContextHandler interface {
@@ -71,6 +71,9 @@ type Context struct {
 
 	DiscordSession *dg.Session
 	DiscordMessage *dg.MessageCreate
+
+	MatrixClient *interface{}
+	MatrixEvent  *interface{}
 
 	originalVideoPath string
 
