@@ -1,4 +1,4 @@
-# Copilot Instructions for gpsp-bot
+# Instructions for AI Agents for gpsp-bot
 
 ## Repository Overview
 **gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, DuckDB (requires CGO).
@@ -17,7 +17,7 @@
 
 **Build**: `go build -o gpsp-bot gpsp-bot.go`  
 **Clean build**: `go clean && go build -o gpsp-bot gpsp-bot.go`  
-**Cross-compile arm64** (needs `gcc-aarch64-linux-gnu` + `g++-aarch64-linux-gnu`):  
+**Cross-compile arm64** (needs `gcc-aarch64-linux-gnu` + `g++-aarch64-linux-gnu`):
 ```bash
 GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ \
   go build -o gpsp-bot-linux-arm64 gpsp-bot.go
@@ -51,9 +51,9 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 
 ## Making Changes
 
-**New Handler**: Create `internal/handlers/*_handler.go` implementing `ContextHandler` (Execute, SetNext). Add to chain in `internal/chain/chain.go`. Add test.
+**New Handler**: Create `internal/handlers/*_handler.go` implementing `ContextHandler` (Execute, SetNext). Add to chain in `internal/chain/chain.go`. Add test. 
 
-**New Feature**: Define Action constant in `internal/handlers/context.go`, add to ActionMap, create handler(s), wire to chain, update README, test with `ENABLED_FEATURES=newfeature`.
+**New Feature**: Define Action constant in `internal/handlers/context.go`, add to ActionMap, create handler(s), wire to chain, update README, test with `ENABLED_FEATURES=newfeature`. 
 
 **Platform Changes**: Modify `internal/platforms/{telegram,discord}_api.go` or `common.go`.
 
@@ -70,4 +70,4 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 4. For cross-compile changes: verify amd64 and arm64 builds
 5. Update README.md if user-facing changes
 
-**These instructions are verified and up-to-date.** Search for additional context only when needed.
+**These instructions are verified and up-to-date.** Refer to the source code for ground truth when necessary.
