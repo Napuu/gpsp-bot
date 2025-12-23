@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os/exec"
 	"strings"
 	"sync"
@@ -26,8 +27,13 @@ func cycleProxy() string {
 }
 
 // isYleURL checks if the URL is from yle.fi domain
-func isYleURL(url string) bool {
-	return strings.Contains(url, "yle.fi")
+func isYleURL(urlStr string) bool {
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	hostname := strings.ToLower(parsedURL.Hostname())
+	return hostname == "yle.fi" || strings.HasSuffix(hostname, ".yle.fi")
 }
 
 // isYleDlAvailable checks if yle-dl is available in PATH
@@ -80,13 +86,10 @@ func tryDownloadWithProxies(url, filePath string, targetSizeInMB uint64) string 
 		}
 
 		// Try yle-dl with proxies
-		for i := 0; i < len(proxyURLs); i++ {
-			proxy := cycleProxy()
-			slog.Info(fmt.Sprintf("yle-dl download failed, trying with proxy %s", proxy))
-
-			if attemptYleDlDownload(url, filePath, proxy) {
-				return filePath
-			}
+		if tryWithAllProxies(func(proxy string) bool {
+			return attemptYleDlDownload(url, filePath, proxy)
+		}, "yle-dl") {
+			return filePath
 		}
 
 		slog.Info("yle-dl failed with all proxies, falling back to yt-dlp")
@@ -99,17 +102,32 @@ func tryDownloadWithProxies(url, filePath string, targetSizeInMB uint64) string 
 	}
 
 	// Try yt-dlp with proxies
-	for i := 0; i < len(proxyURLs); i++ {
-		proxy := cycleProxy()
-		slog.Info(fmt.Sprintf("yt-dlp download failed, trying with proxy %s", proxy))
-
-		if attemptYtDlpDownload(url, filePath, proxy, targetSizeInMB) {
-			return filePath
-		}
+	if tryWithAllProxies(func(proxy string) bool {
+		return attemptYtDlpDownload(url, filePath, proxy, targetSizeInMB)
+	}, "yt-dlp") {
+		return filePath
 	}
 
 	slog.Info("Download failed with all methods")
 	return ""
+}
+
+// tryWithAllProxies cycles through all available proxies and calls downloadFunc with each
+func tryWithAllProxies(downloadFunc func(string) bool, toolName string) bool {
+	if len(proxyURLs) == 0 {
+		return false
+	}
+
+	for range proxyURLs {
+		proxy := cycleProxy()
+		slog.Info(fmt.Sprintf("%s download failed, trying with proxy %s", toolName, proxy))
+
+		if downloadFunc(proxy) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func attemptYtDlpDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {

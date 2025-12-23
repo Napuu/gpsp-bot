@@ -38,7 +38,12 @@ func TestIsYleURL(t *testing.T) {
 		{
 			name:     "yle.fi in path but not domain",
 			url:      "https://example.com/yle.fi/video",
-			expected: true, // This will match, but that's okay - false positives are safe since we fallback to yt-dlp
+			expected: false,
+		},
+		{
+			name:     "invalid url",
+			url:      "not a valid url",
+			expected: false,
 		},
 	}
 
