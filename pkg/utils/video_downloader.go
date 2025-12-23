@@ -48,7 +48,7 @@ func isYleDlAvailable() bool {
 // attemptYleDlDownload tries to download using yle-dl
 func attemptYleDlDownload(url, filePath, proxy string) bool {
 	args := []string{
-		"--output", filePath,
+		"-o", filePath,
 	}
 
 	if proxy != "" {
