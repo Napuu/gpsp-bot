@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -24,10 +25,46 @@ func cycleProxy() string {
 	return proxy
 }
 
+// isYleURL checks if the URL is from yle.fi domain
+func isYleURL(url string) bool {
+	return strings.Contains(url, "yle.fi")
+}
+
+// isYleDlAvailable checks if yle-dl is available in PATH
+func isYleDlAvailable() bool {
+	_, err := exec.LookPath("yle-dl")
+	return err == nil
+}
+
+// attemptYleDlDownload tries to download using yle-dl
+func attemptYleDlDownload(url, filePath string) bool {
+	args := []string{
+		"--output", filePath,
+		url,
+	}
+
+	slog.Info("Attempting download with yle-dl")
+	cmd := exec.Command("yle-dl", args...)
+	err := cmd.Run()
+	if err != nil {
+		slog.Info(fmt.Sprintf("yle-dl download failed: %v", err))
+		return false
+	}
+	return true
+}
+
 func DownloadVideo(url string, targetSizeInMB uint64) string {
 	tmpPath := config.FromEnv().YTDLP_TMP_DIR
 	videoID := uuid.New().String()
 	filePath := fmt.Sprintf("%s/%s.mp4", tmpPath, videoID)
+
+	// Try yle-dl first for yle.fi URLs if available
+	if isYleURL(url) && isYleDlAvailable() {
+		if attemptYleDlDownload(url, filePath) {
+			return filePath
+		}
+		slog.Info("yle-dl failed, falling back to yt-dlp")
+	}
 
 	slog.Info("Downloading with no proxy")
 	if attemptDownload(url, filePath, "", targetSizeInMB) {
