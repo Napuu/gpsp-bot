@@ -29,7 +29,6 @@ func cycleProxy() string {
 	return proxy
 }
 
-// isYleURL checks if the URL is from yle.fi domain
 func isYleURL(urlStr string) bool {
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
@@ -39,13 +38,11 @@ func isYleURL(urlStr string) bool {
 	return hostname == "yle.fi" || strings.HasSuffix(hostname, ".yle.fi")
 }
 
-// isYleDlAvailable checks if yle-dl is available in PATH
 func isYleDlAvailable() bool {
 	_, err := exec.LookPath("yle-dl")
 	return err == nil
 }
 
-// attemptYleDlDownload tries to download using yle-dl
 func attemptYleDlDownload(url, filePath, proxy string) bool {
 	args := []string{
 		"-o", filePath,
@@ -79,16 +76,13 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 	return tryDownloadWithProxies(url, filePath, targetSizeInMB)
 }
 
-// tryDownloadWithProxies attempts download with yle-dl (if yle.fi link) and yt-dlp, cycling through proxies
 func tryDownloadWithProxies(url, filePath string, targetSizeInMB uint64) string {
-	// For yle.fi URLs, try yle-dl first if available
 	if isYleURL(url) && isYleDlAvailable() {
 		slog.Info("Attempting download with yle-dl (no proxy)")
 		if attemptYleDlDownload(url, filePath, "") {
 			return filePath
 		}
 
-		// Try yle-dl with proxies
 		if tryWithAllProxies(func(proxy string) bool {
 			return attemptYleDlDownload(url, filePath, proxy)
 		}, "yle-dl") {
@@ -98,13 +92,11 @@ func tryDownloadWithProxies(url, filePath string, targetSizeInMB uint64) string 
 		slog.Info("yle-dl failed with all proxies, falling back to yt-dlp")
 	}
 
-	// Try yt-dlp (for all URLs, or as fallback for yle.fi)
 	slog.Info("Downloading with yt-dlp (no proxy)")
 	if attemptYtDlpDownload(url, filePath, "", targetSizeInMB) {
 		return filePath
 	}
 
-	// Try yt-dlp with proxies
 	if tryWithAllProxies(func(proxy string) bool {
 		return attemptYtDlpDownload(url, filePath, proxy, targetSizeInMB)
 	}, "yt-dlp") {
@@ -115,7 +107,6 @@ func tryDownloadWithProxies(url, filePath string, targetSizeInMB uint64) string 
 	return ""
 }
 
-// tryWithAllProxies cycles through all available proxies and calls downloadFunc with each
 func tryWithAllProxies(downloadFunc func(string) bool, toolName string) bool {
 	if len(proxyURLs) == 0 {
 		return false
