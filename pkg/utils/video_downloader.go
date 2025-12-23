@@ -3,7 +3,9 @@ package utils
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -16,6 +18,59 @@ var (
 	proxyMutex   sync.Mutex
 )
 
+type ExtractorFunc func(url, filePath, proxy string, targetSizeInMB uint64) bool
+
+type SpecialExtractor struct {
+	Command       string
+	URLMatcher    func(string) bool
+	DownloadFunc  ExtractorFunc
+	SupportsProxy bool
+}
+
+func isYleFiURL(urlStr string) bool {
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(parsedURL.Hostname())
+	return host == "yle.fi" || strings.HasSuffix(host, ".yle.fi")
+}
+
+func isCommandAvailable(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
+}
+
+func attemptYleDlDownload(urlStr, filePath, proxy string, targetSizeInMB uint64) bool {
+	args := []string{
+		"-o", filePath,
+		urlStr,
+	}
+
+	cmd := exec.Command("yle-dl", args...)
+	err := cmd.Run()
+	return err == nil
+}
+
+func getSpecialExtractor(urlStr string) SpecialExtractor {
+	extractors := []SpecialExtractor{
+		{
+			Command:       "yle-dl",
+			URLMatcher:    isYleFiURL,
+			DownloadFunc:  attemptYleDlDownload,
+			SupportsProxy: false,
+		},
+	}
+
+	for _, extractor := range extractors {
+		if extractor.URLMatcher(urlStr) && isCommandAvailable(extractor.Command) {
+			return extractor
+		}
+	}
+
+	return SpecialExtractor{}
+}
+
 func cycleProxy() string {
 	proxyMutex.Lock()
 	defer proxyMutex.Unlock()
@@ -24,30 +79,52 @@ func cycleProxy() string {
 	return proxy
 }
 
+func tryDownloadWithExtractor(extractor ExtractorFunc, urlStr, filePath string, targetSizeInMB uint64, supportsProxy bool) bool {
+	slog.Info("Downloading with no proxy")
+	if extractor(urlStr, filePath, "", targetSizeInMB) {
+		return true
+	}
+
+	if !supportsProxy {
+		return false
+	}
+
+	for i := 0; i < len(proxyURLs); i++ {
+		proxy := cycleProxy()
+		slog.Info(fmt.Sprintf("Trying with proxy %s", proxy))
+
+		if extractor(urlStr, filePath, proxy, targetSizeInMB) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func DownloadVideo(url string, targetSizeInMB uint64) string {
 	tmpPath := config.FromEnv().YTDLP_TMP_DIR
 	videoID := uuid.New().String()
 	filePath := fmt.Sprintf("%s/%s.mp4", tmpPath, videoID)
 
-	slog.Info("Downloading with no proxy")
-	if attemptDownload(url, filePath, "", targetSizeInMB) {
-		return filePath
-	}
-
-	for i := 0; i < len(proxyURLs); i++ {
-		proxy := cycleProxy()
-		slog.Info(fmt.Sprintf("Downloading with no proxy failed, trying with %s", proxy))
-
-		if attemptDownload(url, filePath, proxy, targetSizeInMB) {
+	specialExtractor := getSpecialExtractor(url)
+	if specialExtractor.Command != "" {
+		slog.Info(fmt.Sprintf("Using special extractor: %s", specialExtractor.Command))
+		if tryDownloadWithExtractor(specialExtractor.DownloadFunc, url, filePath, targetSizeInMB, specialExtractor.SupportsProxy) {
 			return filePath
 		}
+		slog.Info(fmt.Sprintf("%s failed, falling back to yt-dlp", specialExtractor.Command))
+	}
+
+	slog.Info("Using yt-dlp")
+	if tryDownloadWithExtractor(attemptYtDlpDownload, url, filePath, targetSizeInMB, true) {
+		return filePath
 	}
 
 	slog.Info("Downloading failed")
 	return ""
 }
 
-func attemptDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
+func attemptYtDlpDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
 	args := []string{
 		"-f", fmt.Sprintf("((bv*[filesize<=%dM]/bv*)[height<=720]/(wv*[filesize<=%dM]/wv*)) + ba / (b[filesize<=%dM]/b)[height<=720]/(w[filesize<=%dM]/w)",
 			targetSizeInMB, targetSizeInMB, targetSizeInMB, targetSizeInMB),
