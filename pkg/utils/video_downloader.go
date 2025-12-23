@@ -21,6 +21,9 @@ var (
 func cycleProxy() string {
 	proxyMutex.Lock()
 	defer proxyMutex.Unlock()
+	if len(proxyURLs) == 0 {
+		return ""
+	}
 	proxy := proxyURLs[currentProxy]
 	currentProxy = (currentProxy + 1) % len(proxyURLs)
 	return proxy
@@ -120,7 +123,7 @@ func tryWithAllProxies(downloadFunc func(string) bool, toolName string) bool {
 
 	for range proxyURLs {
 		proxy := cycleProxy()
-		slog.Info(fmt.Sprintf("%s download failed, trying with proxy %s", toolName, proxy))
+		slog.Info(fmt.Sprintf("Trying %s with proxy %s", toolName, proxy))
 
 		if downloadFunc(proxy) {
 			return true
