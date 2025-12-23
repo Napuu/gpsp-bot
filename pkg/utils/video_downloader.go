@@ -37,13 +37,22 @@ func isYleDlAvailable() bool {
 }
 
 // attemptYleDlDownload tries to download using yle-dl
-func attemptYleDlDownload(url, filePath string) bool {
+func attemptYleDlDownload(url, filePath, proxy string) bool {
 	args := []string{
 		"--output", filePath,
-		url,
 	}
 
-	slog.Info("Attempting download with yle-dl")
+	if proxy != "" {
+		args = append(args, "--proxy", proxy)
+	}
+
+	args = append(args, url)
+
+	if proxy != "" {
+		slog.Info(fmt.Sprintf("Attempting download with yle-dl using proxy %s", proxy))
+	} else {
+		slog.Info("Attempting download with yle-dl")
+	}
 	cmd := exec.Command("yle-dl", args...)
 	err := cmd.Run()
 	if err != nil {
@@ -60,31 +69,58 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 
 	// Try yle-dl first for yle.fi URLs if available
 	if isYleURL(url) && isYleDlAvailable() {
-		if attemptYleDlDownload(url, filePath) {
-			return filePath
+		result := tryYleDlDownload(url, filePath)
+		if result != "" {
+			return result
 		}
-		slog.Info("yle-dl failed, falling back to yt-dlp")
+		slog.Info("yle-dl failed with all proxies, falling back to yt-dlp")
 	}
 
-	slog.Info("Downloading with no proxy")
-	if attemptDownload(url, filePath, "", targetSizeInMB) {
+	// Try yt-dlp
+	return attemptDownload(url, filePath, targetSizeInMB)
+}
+
+// tryYleDlDownload attempts download with yle-dl, trying no proxy first then cycling through proxies
+func tryYleDlDownload(url, filePath string) string {
+	slog.Info("Attempting download with yle-dl (no proxy)")
+	if attemptYleDlDownload(url, filePath, "") {
 		return filePath
 	}
 
 	for i := 0; i < len(proxyURLs); i++ {
 		proxy := cycleProxy()
-		slog.Info(fmt.Sprintf("Downloading with no proxy failed, trying with %s", proxy))
+		slog.Info(fmt.Sprintf("yle-dl download failed, trying with proxy %s", proxy))
 
-		if attemptDownload(url, filePath, proxy, targetSizeInMB) {
+		if attemptYleDlDownload(url, filePath, proxy) {
 			return filePath
 		}
 	}
 
-	slog.Info("Downloading failed")
 	return ""
 }
 
-func attemptDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
+func attemptDownload(url, filePath string, targetSizeInMB uint64) string {
+	// Try without proxy first
+	slog.Info("Downloading with yt-dlp (no proxy)")
+	if attemptYtDlpDownload(url, filePath, "", targetSizeInMB) {
+		return filePath
+	}
+
+	// Try with proxies
+	for i := 0; i < len(proxyURLs); i++ {
+		proxy := cycleProxy()
+		slog.Info(fmt.Sprintf("yt-dlp download failed, trying with proxy %s", proxy))
+
+		if attemptYtDlpDownload(url, filePath, proxy, targetSizeInMB) {
+			return filePath
+		}
+	}
+
+	slog.Info("yt-dlp download failed with all proxies")
+	return ""
+}
+
+func attemptYtDlpDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
 	args := []string{
 		"-f", fmt.Sprintf("((bv*[filesize<=%dM]/bv*)[height<=720]/(wv*[filesize<=%dM]/wv*)) + ba / (b[filesize<=%dM]/b)[height<=720]/(w[filesize<=%dM]/w)",
 			targetSizeInMB, targetSizeInMB, targetSizeInMB, targetSizeInMB),
