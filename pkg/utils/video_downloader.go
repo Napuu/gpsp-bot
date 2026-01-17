@@ -22,6 +22,12 @@ var (
 	proxyMutex   sync.Mutex
 )
 
+const (
+	// maxFileSizeBytes is the maximum file size for HTTP downloads (500 MB)
+	// This matches yt-dlp's --max-filesize behavior
+	maxFileSizeBytes = 500 * 1024 * 1024
+)
+
 // Common user agents to avoid being blocked
 var userAgents = []string{
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -207,10 +213,9 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 
 	// Download up to 500 MB (matching yt-dlp's --max-filesize behavior)
 	// If file is larger, truncate it at the limit
-	maxSize := int64(500 * 1024 * 1024) // 500 MB
-	limitedReader := io.LimitReader(resp.Body, maxSize)
+	limitedReader := io.LimitReader(resp.Body, maxFileSizeBytes)
 
-	if resp.ContentLength > 0 && resp.ContentLength > maxSize {
+	if resp.ContentLength > 0 && resp.ContentLength > maxFileSizeBytes {
 		slog.Info(fmt.Sprintf("File size %d bytes exceeds limit, downloading first 500 MB", resp.ContentLength))
 	}
 
