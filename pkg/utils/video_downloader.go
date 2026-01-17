@@ -199,10 +199,11 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 	}
 
 	// Check Content-Length if available to avoid downloading files that are too large
+	// Use 500MB limit (same as yt-dlp) and rely on post-processing to compress
 	if resp.ContentLength > 0 {
-		maxSize := int64(targetSizeInMB * 1024 * 1024)
+		maxSize := int64(500 * 1024 * 1024) // 500 MB, matching yt-dlp's --max-filesize
 		if resp.ContentLength > maxSize {
-			slog.Info(fmt.Sprintf("File too large: %d bytes (max: %d MB)", resp.ContentLength, targetSizeInMB))
+			slog.Info(fmt.Sprintf("File too large: %d bytes (max: 500 MB)", resp.ContentLength))
 			return false
 		}
 	}
