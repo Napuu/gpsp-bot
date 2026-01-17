@@ -179,6 +179,15 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 		return false
 	}
 
+	// Check Content-Length if available to avoid downloading files that are too large
+	if resp.ContentLength > 0 {
+		maxSize := int64(targetSizeInMB * 1024 * 1024)
+		if resp.ContentLength > maxSize {
+			slog.Info(fmt.Sprintf("File too large: %d bytes (max: %d MB)", resp.ContentLength, targetSizeInMB))
+			return false
+		}
+	}
+
 	out, err := os.Create(filePath)
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to create file: %v", err))
@@ -189,6 +198,8 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to write file: %v", err))
+		// Clean up partially downloaded file on error
+		os.Remove(filePath)
 		return false
 	}
 
