@@ -143,3 +143,34 @@ func TestIsCommandAvailable(t *testing.T) {
 		})
 	}
 }
+
+func TestAttemptHTTPDownload(t *testing.T) {
+	tests := []struct {
+		name        string
+		url         string
+		expectError bool
+	}{
+		{
+			name:        "invalid URL",
+			url:         "not-a-valid-url",
+			expectError: true,
+		},
+		{
+			name:        "non-existent domain",
+			url:         "http://this-domain-definitely-does-not-exist-xyz123.com/video.mp4",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := attemptHTTPDownload(tt.url, "/tmp/test-video.mp4", "", 0)
+			if !tt.expectError && !result {
+				t.Errorf("attemptHTTPDownload(%q) failed but was expected to succeed", tt.url)
+			}
+			if tt.expectError && result {
+				t.Errorf("attemptHTTPDownload(%q) succeeded but was expected to fail", tt.url)
+			}
+		})
+	}
+}
