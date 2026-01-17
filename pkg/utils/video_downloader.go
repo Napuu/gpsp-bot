@@ -2,8 +2,11 @@ package utils
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
-	"net/url"
+	"net/http"
+	neturl "net/url"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -28,7 +31,7 @@ type SpecialExtractor struct {
 }
 
 func isYleFiURL(urlStr string) bool {
-	parsedURL, err := url.Parse(urlStr)
+	parsedURL, err := neturl.Parse(urlStr)
 	if err != nil {
 		return false
 	}
@@ -120,6 +123,11 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 		return filePath
 	}
 
+	slog.Info("yt-dlp failed, trying HTTP fallback")
+	if tryDownloadWithExtractor(attemptHTTPDownload, url, filePath, targetSizeInMB, true) {
+		return filePath
+	}
+
 	slog.Info("Downloading failed")
 	return ""
 }
@@ -143,4 +151,46 @@ func attemptYtDlpDownload(url, filePath, proxy string, targetSizeInMB uint64) bo
 	cmd := exec.Command("yt-dlp", args...)
 	err := cmd.Run()
 	return err == nil
+}
+
+func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
+	client := &http.Client{}
+
+	if proxy != "" {
+		proxyURL, err := neturl.Parse(proxy)
+		if err != nil {
+			slog.Info(fmt.Sprintf("Failed to parse proxy URL: %v", err))
+			return false
+		}
+		client.Transport = &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		}
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		slog.Info(fmt.Sprintf("HTTP GET failed: %v", err))
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.Info(fmt.Sprintf("HTTP GET returned status: %d", resp.StatusCode))
+		return false
+	}
+
+	out, err := os.Create(filePath)
+	if err != nil {
+		slog.Info(fmt.Sprintf("Failed to create file: %v", err))
+		return false
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		slog.Info(fmt.Sprintf("Failed to write file: %v", err))
+		return false
+	}
+
+	return true
 }
