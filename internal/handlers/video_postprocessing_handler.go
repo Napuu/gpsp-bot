@@ -169,11 +169,13 @@ func (u *VideoPostprocessingHandler) Execute(m *Context) {
 			h264Path := fmt.Sprintf("%s.h264.mp4", m.finalVideoPath)
 			err := reencodeToH264(m.finalVideoPath, h264Path)
 			if err != nil {
-				panic(err)
+				// If re-encoding fails (e.g., unsupported codec), fall back to original video
+				slog.Info(fmt.Sprintf("Re-encoding failed: %v. Sending original video.", err))
+				m.finalVideoPath = m.originalVideoPath
+			} else {
+				m.finalVideoPath = h264Path
+				m.finalVideoPath = checkAndCompress(m.finalVideoPath, 10)
 			}
-			m.finalVideoPath = h264Path
-
-			m.finalVideoPath = checkAndCompress(m.finalVideoPath, 10)
 		}
 	}
 

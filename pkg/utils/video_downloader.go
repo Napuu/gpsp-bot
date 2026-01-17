@@ -154,6 +154,15 @@ func attemptYtDlpDownload(url, filePath, proxy string, targetSizeInMB uint64) bo
 }
 
 func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) bool {
+	// Common user agents to avoid being blocked
+	userAgents := []string{
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+		"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+		"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+	}
+
 	client := &http.Client{}
 
 	if proxy != "" {
@@ -167,7 +176,16 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 		}
 	}
 
-	resp, err := client.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		slog.Info(fmt.Sprintf("Failed to create request: %v", err))
+		return false
+	}
+
+	// Pick a random user agent
+	req.Header.Set("User-Agent", userAgents[len(url)%len(userAgents)])
+
+	resp, err := client.Do(req)
 	if err != nil {
 		slog.Info(fmt.Sprintf("HTTP GET failed: %v", err))
 		return false
