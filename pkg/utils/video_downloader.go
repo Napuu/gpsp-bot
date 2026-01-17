@@ -198,16 +198,6 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 		return false
 	}
 
-	// Check Content-Length if available to avoid downloading files that are too large
-	// Use 500MB limit (same as yt-dlp) and rely on post-processing to compress
-	if resp.ContentLength > 0 {
-		maxSize := int64(500 * 1024 * 1024) // 500 MB, matching yt-dlp's --max-filesize
-		if resp.ContentLength > maxSize {
-			slog.Info(fmt.Sprintf("File too large: %d bytes (max: 500 MB)", resp.ContentLength))
-			return false
-		}
-	}
-
 	out, err := os.Create(filePath)
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to create file: %v", err))
@@ -215,7 +205,16 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	// Download up to 500 MB (matching yt-dlp's --max-filesize behavior)
+	// If file is larger, truncate it at the limit
+	maxSize := int64(500 * 1024 * 1024) // 500 MB
+	limitedReader := io.LimitReader(resp.Body, maxSize)
+	
+	if resp.ContentLength > maxSize {
+		slog.Info(fmt.Sprintf("File size %d bytes exceeds limit, downloading first 500 MB", resp.ContentLength))
+	}
+
+	_, err = io.Copy(out, limitedReader)
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to write file: %v", err))
 		// Clean up partially downloaded file on error
