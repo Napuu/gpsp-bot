@@ -22,6 +22,12 @@ var (
 	proxyMutex   sync.Mutex
 )
 
+const (
+	// maxFileSizeBytes is the maximum file size for HTTP downloads (500 MB)
+	// This matches yt-dlp's --max-filesize behavior
+	maxFileSizeBytes = 500 * 1024 * 1024
+)
+
 // Common user agents to avoid being blocked
 var userAgents = []string{
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -198,15 +204,6 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 		return false
 	}
 
-	// Check Content-Length if available to avoid downloading files that are too large
-	if resp.ContentLength > 0 {
-		maxSize := int64(targetSizeInMB * 1024 * 1024)
-		if resp.ContentLength > maxSize {
-			slog.Info(fmt.Sprintf("File too large: %d bytes (max: %d MB)", resp.ContentLength, targetSizeInMB))
-			return false
-		}
-	}
-
 	out, err := os.Create(filePath)
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to create file: %v", err))
@@ -214,7 +211,15 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 	}
 	defer out.Close()
 
-	_, err = io.Copy(out, resp.Body)
+	// Download up to 500 MB (matching yt-dlp's --max-filesize behavior)
+	// If file is larger, truncate it at the limit
+	limitedReader := io.LimitReader(resp.Body, maxFileSizeBytes)
+
+	if resp.ContentLength > 0 && resp.ContentLength > maxFileSizeBytes {
+		slog.Info(fmt.Sprintf("File size %d bytes exceeds limit, downloading first 500 MB", resp.ContentLength))
+	}
+
+	_, err = io.Copy(out, limitedReader)
 	if err != nil {
 		slog.Info(fmt.Sprintf("Failed to write file: %v", err))
 		// Clean up partially downloaded file on error
