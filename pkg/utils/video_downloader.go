@@ -209,8 +209,8 @@ func attemptHTTPDownload(url, filePath, proxy string, targetSizeInMB uint64) boo
 	// If file is larger, truncate it at the limit
 	maxSize := int64(500 * 1024 * 1024) // 500 MB
 	limitedReader := io.LimitReader(resp.Body, maxSize)
-	
-	if resp.ContentLength > maxSize {
+
+	if resp.ContentLength > 0 && resp.ContentLength > maxSize {
 		slog.Info(fmt.Sprintf("File size %d bytes exceeds limit, downloading first 500 MB", resp.ContentLength))
 	}
 
