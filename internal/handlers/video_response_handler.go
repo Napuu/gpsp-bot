@@ -75,7 +75,7 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 			if m.shouldReplyToMessage {
 				message.Reference = &discordgo.MessageReference{
 					ChannelID: m.chatId,
-					MessageID: m.id,
+					MessageID: m.replyToId,
 				}
 			}
 
