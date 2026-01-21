@@ -56,8 +56,11 @@ type Context struct {
 	shouldReplyToMessage bool
 	isReply              bool
 	chatId               string
-	action               Action
-	url                  string
+	// Image-specific reply fields (used when repost image needs different reply target than video)
+	imageShouldReplyToMessage bool
+	imageReplyToId            string
+	action                    Action
+	url                       string
 
 	doneTyping         chan struct{}
 	gotDubz            bool
@@ -86,4 +89,14 @@ type Context struct {
 	cutVideoArgsParsed            chan bool
 	shouldDeleteOriginalMessage   bool
 	shouldNagAboutOriginalMessage bool
+
+	isRepost                 bool
+	repostOriginalMessageIds []string
+
+	// Pending fingerprint data to be stored after message is sent
+	// We know the group ID and the database path, but
+	// the message ID is only known after the message is sent.
+	pendingFingerprintDbPath  string
+	pendingFingerprintGroupId string
+	pendingFingerprint        []byte
 }

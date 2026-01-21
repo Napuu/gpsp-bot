@@ -2,3 +2,4 @@ target
 gpsp-bot
 gpsp-bot-*
 coverage.out
+.DS_Store
