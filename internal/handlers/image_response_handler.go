@@ -22,7 +22,27 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 		case Telegram:
 			chatId := tele.ChatID(utils.S2I(m.chatId))
 
-			m.Telebot.Send(chatId, &tele.Photo{File: tele.FromDisk(m.finalImagePath)})
+			photo := &tele.Photo{File: tele.FromDisk(m.finalImagePath)}
+			if m.textResponse != "" {
+				photo.Caption = m.textResponse
+			}
+
+			var sentMessage *tele.Message
+			var err error
+			if m.shouldReplyToMessage {
+				message := &tele.Message{
+					Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
+					ID:   utils.S2I(m.replyToId),
+				}
+				sentMessage, err = m.Telebot.Send(chatId, photo, &tele.SendOptions{ReplyTo: message})
+			} else {
+				sentMessage, err = m.Telebot.Send(chatId, photo)
+			}
+			if err != nil {
+				slog.Warn("Failed to send image", "error", err)
+			} else {
+				slog.Debug("Image sent successfully", "messageId", sentMessage.ID)
+			}
 		case Discord:
 			file, err := os.Open(m.finalImagePath)
 			if err != nil {
@@ -37,7 +57,7 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 			}
 
 			message := &discordgo.MessageSend{
-				Content: "",
+				Content: m.textResponse,
 				Files: []*discordgo.File{
 					{
 						Name:        "image.jpg", // this apparently doesn't matter
@@ -45,6 +65,13 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 						Reader:      buf,
 					},
 				},
+			}
+
+			if m.shouldReplyToMessage {
+				message.Reference = &discordgo.MessageReference{
+					ChannelID: m.chatId,
+					MessageID: m.replyToId,
+				}
 			}
 
 			_, err = m.DiscordSession.ChannelMessageSendComplex(m.chatId, message)

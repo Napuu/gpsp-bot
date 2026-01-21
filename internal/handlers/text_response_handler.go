@@ -15,6 +15,12 @@ type TextResponseHandler struct {
 func (r *TextResponseHandler) Execute(m *Context) {
 	slog.Debug("Entering TextResponseHandler")
 
+	// Skip sending text if an image is being sent (image handler will send it with caption)
+	if len(m.finalImagePath) > 0 {
+		r.next.Execute(m)
+		return
+	}
+
 	// Check for repost and set up reply to original message
 	if m.isRepost && len(m.repostOriginalMessageIds) > 0 {
 		warningMsg := "⚠️ Repost detected (similar to previously seen video)"

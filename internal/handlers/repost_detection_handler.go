@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
@@ -77,6 +78,14 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 		m.isRepost = true
 		m.repostOriginalMessageIds = matches
 		slog.Info("Repost detected", "groupId", groupId, "matches", len(matches))
+
+		// Generate composite image with first frame
+		if m.finalVideoPath != "" {
+			if err := r.generateRepostImage(m); err != nil {
+				slog.Warn("Failed to generate repost image", "error", err)
+				// Continue without image - fall back to text only
+			}
+		}
 	}
 
 	// Store fingerprint data in context to be stored after video message is sent
@@ -107,4 +116,37 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 
 func (r *RepostDetectionHandler) SetNext(next ContextHandler) {
 	r.next = next
+}
+
+func (r *RepostDetectionHandler) generateRepostImage(m *Context) error {
+	// Generate temporary paths
+	frameID := uuid.New().String()
+	compositeID := uuid.New().String()
+	tmpDir := config.FromEnv().YTDLP_TMP_DIR
+	framePath := fmt.Sprintf("%s/%s_frame.jpg", tmpDir, frameID)
+	compositePath := fmt.Sprintf("%s/%s_composite.png", tmpDir, compositeID)
+
+	// Extract first frame from video
+	if err := utils.ExtractFirstFrame(m.finalVideoPath, framePath); err != nil {
+		return fmt.Errorf("failed to extract first frame: %w", err)
+	}
+
+	// Get template image
+	templateImg, err := utils.GetTemplateImage()
+	if err != nil {
+		return fmt.Errorf("failed to get template image: %w", err)
+	}
+
+	// Composite the frame into the template
+	if err := utils.CompositeRepostImage(templateImg, framePath, compositePath); err != nil {
+		return fmt.Errorf("failed to composite image: %w", err)
+	}
+
+	// Set the composite image path and text response
+	m.finalImagePath = compositePath
+	m.textResponse = "️️️❗❗❗⚠️⚠️⚠️❗❗❗\nReposti tunnistettu!\n️❗❗❗⚠️⚠️⚠️❗❗❗"
+	m.shouldReplyToMessage = true
+	m.replyToId = m.repostOriginalMessageIds[0]
+
+	return nil
 }
