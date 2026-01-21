@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -139,7 +140,15 @@ func (r *RepostDetectionHandler) generateRepostImage(m *Context) error {
 
 	// Composite the frame into the template
 	if err := utils.CompositeRepostImage(templateImg, framePath, compositePath); err != nil {
+		// Clean up frame file even if composite fails
+		os.Remove(framePath)
 		return fmt.Errorf("failed to composite image: %w", err)
+	}
+
+	// Clean up the intermediate frame file - it's no longer needed after composite is created
+	if err := os.Remove(framePath); err != nil {
+		slog.Warn("Failed to delete intermediate frame file", "path", framePath, "error", err)
+		// Continue anyway - this is not critical
 	}
 
 	// Set the composite image path and text response
