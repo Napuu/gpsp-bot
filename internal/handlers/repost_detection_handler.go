@@ -67,6 +67,12 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 	if err != nil {
 		slog.Warn("Failed to query for similar fingerprints", "error", err)
 		// Continue without detection - don't block video
+		// Store fingerprint data in context to be stored after video message is sent
+		// We need the message ID of the bot's response, not the original message
+		m.pendingFingerprint = fingerprint
+		m.pendingFingerprintGroupId = groupId
+		m.pendingFingerprintDbPath = dbPath
+		slog.Debug("Fingerprint data prepared for storage after message is sent", "groupId", groupId)
 	} else if len(matches) > 0 {
 		// Repost detected
 		m.isRepost = true
@@ -80,14 +86,15 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 				// Continue without image - fall back to text only
 			}
 		}
+		// Do not store fingerprint for reposts to avoid duplicate entries
+	} else {
+		// No repost detected - store fingerprint data in context to be stored after video message is sent
+		// We need the message ID of the bot's response, not the original message
+		m.pendingFingerprint = fingerprint
+		m.pendingFingerprintGroupId = groupId
+		m.pendingFingerprintDbPath = dbPath
+		slog.Debug("Fingerprint data prepared for storage after message is sent", "groupId", groupId)
 	}
-
-	// Store fingerprint data in context to be stored after video message is sent
-	// We need the message ID of the bot's response, not the original message
-	m.pendingFingerprint = fingerprint
-	m.pendingFingerprintGroupId = groupId
-	m.pendingFingerprintDbPath = dbPath
-	slog.Debug("Fingerprint data prepared for storage after message is sent", "groupId", groupId)
 
 	r.next.Execute(m)
 }
@@ -131,8 +138,9 @@ func (r *RepostDetectionHandler) generateRepostImage(m *Context) error {
 	// Set the composite image path and text response
 	m.finalImagePath = compositePath
 	m.textResponse = "️️️❗❗❗⚠️⚠️⚠️❗❗❗\nReposti tunnistettu!\n️❗❗❗⚠️⚠️⚠️❗❗❗"
-	m.shouldReplyToMessage = true
-	m.replyToId = m.repostOriginalMessageIds[0]
+	// Use image-specific reply fields so video response handler can use original reply target
+	m.imageShouldReplyToMessage = true
+	m.imageReplyToId = m.repostOriginalMessageIds[0]
 
 	return nil
 }

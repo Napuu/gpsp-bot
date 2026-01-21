@@ -56,8 +56,11 @@ type Context struct {
 	shouldReplyToMessage bool
 	isReply              bool
 	chatId               string
-	action               Action
-	url                  string
+	// Image-specific reply fields (used when repost image needs different reply target than video)
+	imageShouldReplyToMessage bool
+	imageReplyToId            string
+	action                    Action
+	url                       string
 
 	doneTyping         chan struct{}
 	gotDubz            bool

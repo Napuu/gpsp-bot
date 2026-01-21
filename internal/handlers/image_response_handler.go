@@ -29,10 +29,16 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 
 			var sentMessage *tele.Message
 			var err error
-			if m.shouldReplyToMessage {
+			// Check image-specific reply fields first (used for repost images), fallback to shared fields
+			shouldReply := m.imageShouldReplyToMessage || m.shouldReplyToMessage
+			replyToId := m.imageReplyToId
+			if replyToId == "" {
+				replyToId = m.replyToId
+			}
+			if shouldReply {
 				message := &tele.Message{
 					Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
-					ID:   utils.S2I(m.replyToId),
+					ID:   utils.S2I(replyToId),
 				}
 				sentMessage, err = m.Telebot.Send(chatId, photo, &tele.SendOptions{ReplyTo: message})
 			} else {
@@ -67,10 +73,16 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 				},
 			}
 
-			if m.shouldReplyToMessage {
+			// Check image-specific reply fields first (used for repost images), fallback to shared fields
+			shouldReply := m.imageShouldReplyToMessage || m.shouldReplyToMessage
+			replyToId := m.imageReplyToId
+			if replyToId == "" {
+				replyToId = m.replyToId
+			}
+			if shouldReply {
 				message.Reference = &discordgo.MessageReference{
 					ChannelID: m.chatId,
-					MessageID: m.replyToId,
+					MessageID: replyToId,
 				}
 			}
 

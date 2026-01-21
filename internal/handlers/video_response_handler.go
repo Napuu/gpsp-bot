@@ -39,7 +39,8 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 			} else {
 				m.sendVideoSucceeded = true
 				// Store fingerprint with the message ID of the bot's response
-				if len(m.pendingFingerprint) > 0 {
+				// Skip storage if this is a repost to avoid duplicate entries
+				if !m.isRepost && len(m.pendingFingerprint) > 0 {
 					messageId := fmt.Sprint(sentMessage.ID)
 					if err := utils.StoreFingerprint(m.pendingFingerprintDbPath, m.pendingFingerprint, m.pendingFingerprintGroupId, messageId); err != nil {
 						slog.Warn("Failed to store fingerprint", "error", err)
@@ -85,7 +86,8 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 			} else {
 				m.sendVideoSucceeded = true
 				// Store fingerprint with the message ID of the bot's response
-				if len(m.pendingFingerprint) > 0 {
+				// Skip storage if this is a repost to avoid duplicate entries
+				if !m.isRepost && len(m.pendingFingerprint) > 0 {
 					if err := utils.StoreFingerprint(m.pendingFingerprintDbPath, m.pendingFingerprint, m.pendingFingerprintGroupId, sentMessage.ID); err != nil {
 						slog.Warn("Failed to store fingerprint", "error", err)
 					} else {
