@@ -5,26 +5,19 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
-type RepostDetectionHandler struct {
-	next            ContextHandler
-	cleanupCounter  int
-	cleanupMutex    sync.Mutex
-	lastCleanupTime time.Time
-}
-
 const (
 	similarityThreshold = 0.95
-	cleanupInterval     = 10                  // Run cleanup every 10 detections
-	cleanupMaxAge       = 30 * 24 * time.Hour // 30 days
 )
+
+type RepostDetectionHandler struct {
+	next ContextHandler
+}
 
 func (r *RepostDetectionHandler) Execute(m *Context) {
 	slog.Debug("Entering RepostDetectionHandler")
@@ -95,22 +88,6 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 	m.pendingFingerprintGroupId = groupId
 	m.pendingFingerprintDbPath = dbPath
 	slog.Debug("Fingerprint data prepared for storage after message is sent", "groupId", groupId)
-
-	// Periodic cleanup
-	r.cleanupMutex.Lock()
-	r.cleanupCounter++
-	shouldCleanup := r.cleanupCounter >= cleanupInterval || time.Since(r.lastCleanupTime) > 24*time.Hour
-	if shouldCleanup {
-		r.cleanupCounter = 0
-		r.lastCleanupTime = time.Now()
-		r.cleanupMutex.Unlock()
-
-		if err := utils.CleanupOldFingerprints(dbPath, cleanupMaxAge); err != nil {
-			slog.Warn("Failed to cleanup old fingerprints", "error", err)
-		}
-	} else {
-		r.cleanupMutex.Unlock()
-	}
 
 	r.next.Execute(m)
 }
