@@ -86,4 +86,14 @@ type Context struct {
 	cutVideoArgsParsed            chan bool
 	shouldDeleteOriginalMessage   bool
 	shouldNagAboutOriginalMessage bool
+
+	isRepost                 bool
+	repostOriginalMessageIds []string
+
+	// Pending fingerprint data to be stored after message is sent
+	// We know the group ID and the database path, but
+	// the message ID is only known after the message is sent.
+	pendingFingerprintDbPath  string
+	pendingFingerprintGroupId string
+	pendingFingerprint        []byte
 }

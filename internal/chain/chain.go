@@ -20,6 +20,7 @@ func NewChainOfResponsibility() *HandlerChain {
 	videoCutArgsHandler := &handlers.VideoCutArgsHandler{}
 	videoDownloadHandler := &handlers.VideoDownloadHandler{}
 	videoPostprocessingHandler := &handlers.VideoPostprocessingHandler{}
+	repostDetectionHandler := &handlers.RepostDetectionHandler{}
 
 	euriborHandler := &handlers.EuriborHandler{}
 
@@ -45,7 +46,8 @@ func NewChainOfResponsibility() *HandlerChain {
 
 	videoCutArgsHandler.SetNext(videoDownloadHandler)
 	videoDownloadHandler.SetNext(videoPostprocessingHandler)
-	videoPostprocessingHandler.SetNext(euriborHandler)
+	videoPostprocessingHandler.SetNext(repostDetectionHandler)
+	repostDetectionHandler.SetNext(euriborHandler)
 
 	euriborHandler.SetNext(tuplillaResponseHandler)
 

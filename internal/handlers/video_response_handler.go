@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -22,16 +23,31 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 		case Telegram:
 			chatId := tele.ChatID(utils.S2I(m.chatId))
 
+			var sentMessage *tele.Message
+			var err error
 			if m.shouldReplyToMessage {
 				message := &tele.Message{
 					Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
 					ID:   utils.S2I(m.replyToId),
 				}
-				m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)}, &tele.SendOptions{ReplyTo: message})
+				sentMessage, err = m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)}, &tele.SendOptions{ReplyTo: message})
 			} else {
-				m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)})
+				sentMessage, err = m.Telebot.Send(chatId, &tele.Video{File: tele.FromDisk(m.finalVideoPath)})
 			}
-			m.sendVideoSucceeded = true
+			if err != nil {
+				slog.Warn("Failed to send video", "error", err)
+			} else {
+				m.sendVideoSucceeded = true
+				// Store fingerprint with the message ID of the bot's response
+				if len(m.pendingFingerprint) > 0 {
+					messageId := fmt.Sprint(sentMessage.ID)
+					if err := utils.StoreFingerprint(m.pendingFingerprintDbPath, m.pendingFingerprint, m.pendingFingerprintGroupId, messageId); err != nil {
+						slog.Warn("Failed to store fingerprint", "error", err)
+					} else {
+						slog.Debug("Fingerprint stored", "groupId", m.pendingFingerprintGroupId, "messageId", messageId)
+					}
+				}
+			}
 		case Discord:
 			file, err := os.Open(m.finalVideoPath)
 			if err != nil {
@@ -63,11 +79,19 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 				}
 			}
 
-			_, err = m.DiscordSession.ChannelMessageSendComplex(m.chatId, message)
+			sentMessage, err := m.DiscordSession.ChannelMessageSendComplex(m.chatId, message)
 			if err != nil {
-				slog.Debug(err.Error())
+				slog.Warn("Failed to send video", "error", err)
 			} else {
 				m.sendVideoSucceeded = true
+				// Store fingerprint with the message ID of the bot's response
+				if len(m.pendingFingerprint) > 0 {
+					if err := utils.StoreFingerprint(m.pendingFingerprintDbPath, m.pendingFingerprint, m.pendingFingerprintGroupId, sentMessage.ID); err != nil {
+						slog.Warn("Failed to store fingerprint", "error", err)
+					} else {
+						slog.Debug("Fingerprint stored", "groupId", m.pendingFingerprintGroupId, "messageId", sentMessage.ID)
+					}
+				}
 			}
 		}
 	}
