@@ -4,6 +4,7 @@ go 1.23.0
 
 require (
 	github.com/bwmarrin/discordgo v0.28.1
+	github.com/disintegration/imaging v1.6.2
 	github.com/go-echarts/go-echarts/v2 v2.5.2
 	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/go-resty/resty/v2 v2.16.5
@@ -26,7 +27,6 @@ require (
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
-	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
