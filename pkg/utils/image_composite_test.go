@@ -80,6 +80,9 @@ func TestFormatTime(t *testing.T) {
 }
 
 func TestIsFrameSingleColor(t *testing.T) {
+	// Create temp directory for test files
+	tmpDir := t.TempDir()
+
 	// Create a temporary black image
 	blackImg := image.NewRGBA(image.Rect(0, 0, 100, 100))
 	for y := 0; y < 100; y++ {
@@ -101,16 +104,12 @@ func TestIsFrameSingleColor(t *testing.T) {
 	}
 
 	// Save test images to temp files
-	blackPath := "/tmp/test_black_frame.jpg"
-	colorfulPath := "/tmp/test_colorful_frame.jpg"
+	blackPath := tmpDir + "/test_black_frame.jpg"
+	colorfulPath := tmpDir + "/test_colorful_frame.jpg"
 
 	if err := imaging.Save(blackImg, blackPath); err != nil {
 		t.Fatalf("Failed to save black test image: %v", err)
 	}
-	defer func() {
-		// Clean up test files
-		// Note: We don't check errors here as cleanup is best-effort
-	}()
 
 	if err := imaging.Save(colorfulImg, colorfulPath); err != nil {
 		t.Fatalf("Failed to save colorful test image: %v", err)

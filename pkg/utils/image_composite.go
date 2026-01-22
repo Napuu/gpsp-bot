@@ -93,7 +93,7 @@ func isFrameSingleColor(imagePath string) (bool, error) {
 	width := bounds.Dx()
 	height := bounds.Dy()
 
-	// Sample points in a grid pattern (5x5 grid = 25 sample points)
+	// Sample points in a grid pattern (3x5 grid = 15 sample points)
 	samplePoints := []struct{ x, y int }{
 		// Top row
 		{width / 4, height / 4},
