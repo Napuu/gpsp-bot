@@ -131,15 +131,15 @@ func isValidVideoFile(filePath string) bool {
 		slog.Info(fmt.Sprintf("File validation failed for %s: %v", filePath, err))
 		return false
 	}
-	
+
 	// Check if output is "video" (codec_type for video streams)
 	outputStr := strings.TrimSpace(string(output))
 	isValid := outputStr == "video"
-	
+
 	if !isValid {
 		slog.Info(fmt.Sprintf("Downloaded file is not a valid video: %s (codec_type: %s)", filePath, outputStr))
 	}
-	
+
 	return isValid
 }
 
