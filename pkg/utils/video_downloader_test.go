@@ -186,9 +186,16 @@ func TestIsValidVideoFile(t *testing.T) {
 	tests := []struct {
 		name        string
 		content     string
+		filePath    string
 		expected    bool
 		description string
 	}{
+		{
+			name:        "valid video file",
+			filePath:    "sample.mp4",
+			expected:    true,
+			description: "Valid video file should pass validation",
+		},
 		{
 			name:        "non-existent file",
 			content:     "",
@@ -212,7 +219,10 @@ func TestIsValidVideoFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var filePath string
-			if tt.content != "" {
+			if tt.filePath != "" {
+				// Use provided file path (e.g., sample.mp4)
+				filePath = tt.filePath
+			} else if tt.content != "" {
 				// Create temporary file with the content
 				tmpFile, err := os.CreateTemp("", "test-video-*.mp4")
 				if err != nil {
