@@ -2,6 +2,7 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -226,7 +227,7 @@ func TestIsValidVideoFile(t *testing.T) {
 				tmpFile.Close()
 			} else {
 				// Non-existent file
-				filePath = "/tmp/definitely-does-not-exist-xyz123.mp4"
+				filePath = filepath.Join(os.TempDir(), "definitely-does-not-exist-xyz123.mp4")
 			}
 
 			result := isValidVideoFile(filePath)

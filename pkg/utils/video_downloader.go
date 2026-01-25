@@ -156,7 +156,9 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 				return filePath
 			}
 			// Remove invalid file and continue to next method
-			os.Remove(filePath)
+			if err := os.Remove(filePath); err != nil {
+				slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+			}
 		}
 		slog.Info(fmt.Sprintf("%s failed, falling back to yt-dlp", specialExtractor.Command))
 	}
@@ -168,7 +170,9 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 			return filePath
 		}
 		// Remove invalid file and continue to next method
-		os.Remove(filePath)
+		if err := os.Remove(filePath); err != nil {
+			slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+		}
 	}
 
 	slog.Info("yt-dlp failed, trying HTTP fallback")
@@ -178,7 +182,9 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 			return filePath
 		}
 		// Remove invalid file
-		os.Remove(filePath)
+		if err := os.Remove(filePath); err != nil {
+			slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+		}
 	}
 
 	slog.Info("Downloading failed")
