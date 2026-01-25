@@ -124,6 +124,7 @@ func tryDownloadWithExtractor(extractor ExtractorFunc, urlStr, filePath string, 
 // Returns true if the file contains at least one video stream
 func isValidVideoFile(filePath string) bool {
 	// Use ffprobe to check if file has video streams
+	// We check codec_type which outputs exactly "video", "audio", or "subtitle"
 	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_type", "-of", "default=noprint_wrappers=1:nokey=1", filePath)
 	output, err := cmd.Output()
 	if err != nil {
@@ -131,12 +132,12 @@ func isValidVideoFile(filePath string) bool {
 		return false
 	}
 	
-	// Check if output contains "video"
+	// Check if output is "video" (codec_type for video streams)
 	outputStr := strings.TrimSpace(string(output))
 	isValid := outputStr == "video"
 	
 	if !isValid {
-		slog.Info(fmt.Sprintf("Downloaded file is not a valid video: %s (output: %s)", filePath, outputStr))
+		slog.Info(fmt.Sprintf("Downloaded file is not a valid video: %s (codec_type: %s)", filePath, outputStr))
 	}
 	
 	return isValid
