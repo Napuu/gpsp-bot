@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"os"
 	"testing"
 )
 
@@ -170,6 +171,67 @@ func TestAttemptHTTPDownload(t *testing.T) {
 			}
 			if tt.expectError && result {
 				t.Errorf("attemptHTTPDownload(%q) succeeded but was expected to fail", tt.url)
+			}
+		})
+	}
+}
+
+func TestIsValidVideoFile(t *testing.T) {
+	// Check if ffprobe is available
+	if !isCommandAvailable("ffprobe") {
+		t.Skip("ffprobe not available, skipping test")
+	}
+
+	tests := []struct {
+		name        string
+		content     string
+		expected    bool
+		description string
+	}{
+		{
+			name:        "non-existent file",
+			content:     "",
+			expected:    false,
+			description: "File that doesn't exist should fail validation",
+		},
+		{
+			name:        "HTML file",
+			content:     "<html><body>Not a video</body></html>",
+			expected:    false,
+			description: "HTML file should fail validation",
+		},
+		{
+			name:        "text file",
+			content:     "This is just plain text, not a video file",
+			expected:    false,
+			description: "Text file should fail validation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var filePath string
+			if tt.content != "" {
+				// Create temporary file with the content
+				tmpFile, err := os.CreateTemp("", "test-video-*.mp4")
+				if err != nil {
+					t.Fatalf("Failed to create temp file: %v", err)
+				}
+				filePath = tmpFile.Name()
+				defer os.Remove(filePath)
+
+				if _, err := tmpFile.WriteString(tt.content); err != nil {
+					t.Fatalf("Failed to write to temp file: %v", err)
+				}
+				tmpFile.Close()
+			} else {
+				// Non-existent file
+				filePath = "/tmp/definitely-does-not-exist-xyz123.mp4"
+			}
+
+			result := isValidVideoFile(filePath)
+			if result != tt.expected {
+				t.Errorf("%s: isValidVideoFile() = %v, expected %v", tt.description, result, tt.expected)
 			}
 		})
 	}
