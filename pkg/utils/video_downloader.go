@@ -120,6 +120,29 @@ func tryDownloadWithExtractor(extractor ExtractorFunc, urlStr, filePath string, 
 	return false
 }
 
+// isValidVideoFile checks if a file is a valid video using ffprobe
+// Returns true if the file contains at least one video stream
+func isValidVideoFile(filePath string) bool {
+	// Use ffprobe to check if file has video streams
+	// We check codec_type which outputs exactly "video", "audio", or "subtitle"
+	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_type", "-of", "default=noprint_wrappers=1:nokey=1", filePath)
+	output, err := cmd.Output()
+	if err != nil {
+		slog.Info(fmt.Sprintf("File validation failed for %s: %v", filePath, err))
+		return false
+	}
+
+	// Check if output is "video" (codec_type for video streams)
+	outputStr := strings.TrimSpace(string(output))
+	isValid := outputStr == "video"
+
+	if !isValid {
+		slog.Info(fmt.Sprintf("Downloaded file is not a valid video: %s (codec_type: %s)", filePath, outputStr))
+	}
+
+	return isValid
+}
+
 func DownloadVideo(url string, targetSizeInMB uint64) string {
 	tmpPath := config.FromEnv().YTDLP_TMP_DIR
 	videoID := uuid.New().String()
@@ -129,19 +152,40 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 	if specialExtractor.Command != "" {
 		slog.Info(fmt.Sprintf("Using special extractor: %s", specialExtractor.Command))
 		if tryDownloadWithExtractor(specialExtractor.DownloadFunc, url, filePath, targetSizeInMB, specialExtractor.SupportsProxy) {
-			return filePath
+			// Validate the downloaded file
+			if isValidVideoFile(filePath) {
+				return filePath
+			}
+			// Remove invalid file and continue to next method
+			if err := os.Remove(filePath); err != nil {
+				slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+			}
 		}
 		slog.Info(fmt.Sprintf("%s failed, falling back to yt-dlp", specialExtractor.Command))
 	}
 
 	slog.Info("Using yt-dlp")
 	if tryDownloadWithExtractor(attemptYtDlpDownload, url, filePath, targetSizeInMB, true) {
-		return filePath
+		// Validate the downloaded file
+		if isValidVideoFile(filePath) {
+			return filePath
+		}
+		// Remove invalid file and continue to next method
+		if err := os.Remove(filePath); err != nil {
+			slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+		}
 	}
 
 	slog.Info("yt-dlp failed, trying HTTP fallback")
 	if tryDownloadWithExtractor(attemptHTTPDownload, url, filePath, targetSizeInMB, true) {
-		return filePath
+		// Validate the downloaded file
+		if isValidVideoFile(filePath) {
+			return filePath
+		}
+		// Remove invalid file
+		if err := os.Remove(filePath); err != nil {
+			slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+		}
 	}
 
 	slog.Info("Downloading failed")
