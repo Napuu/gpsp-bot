@@ -165,13 +165,15 @@ func (u *VideoPostprocessingHandler) Execute(m *Context) {
 		}
 
 		if utils.FileExists(m.finalVideoPath) && (isProblematicCodec(m.finalVideoPath) || config.FromEnv().ALWAYS_RE_ENCODE) {
+			// Save path before re-encoding (may be cut video)
+			pathBeforeReencode := m.finalVideoPath
 			// Reencode to H.264 to get rid of VP9/AV1
 			h264Path := fmt.Sprintf("%s.h264.mp4", m.finalVideoPath)
 			err := reencodeToH264(m.finalVideoPath, h264Path)
 			if err != nil {
-				// If re-encoding fails (e.g., unsupported codec), fall back to original video
-				slog.Info(fmt.Sprintf("Re-encoding failed: %v. Sending original video.", err))
-				m.finalVideoPath = m.originalVideoPath
+				// If re-encoding fails, preserve the current video (which may be cut)
+				slog.Info(fmt.Sprintf("Re-encoding failed: %v. Using video before re-encode attempt.", err))
+				m.finalVideoPath = pathBeforeReencode
 			} else {
 				m.finalVideoPath = h264Path
 				m.finalVideoPath = checkAndCompress(m.finalVideoPath, 10)
