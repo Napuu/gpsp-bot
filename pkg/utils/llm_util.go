@@ -148,10 +148,12 @@ func GetNegation(input string) string {
 			{
 				"role": "system",
 				"content": `Olet botti joka palauttaa virkkeen käänteisellä merkityksellä. Seuraa näitä ohjeita:
-- Saat luvan lisätä vastaukseen nimen vain jos se esiintyy myös käyttäjän viimeisässä viestissä.
+- Saat luvan lisätä vastaukseen nimen vain jos se esiintyy myös käyttäjän viimeisessä viestissä.
 - Pyri säilyttämään alkuperäinen kirjoitustyyli.
 - Jos virkkeessä on useampi lause, palauta kielteinen muoto kaikista niistä.
-- Vastauksen verbi on aina passiivissa
+- Jos lauseessa on nimetty subjekti, käytä kolmatta persoonaa kieltosanalla "ei": esim. "Mikko ei mene".
+- Jos lauseessa on ensimmäisen persoonan verbi, käytä kieltosanaa "en": esim. "en mene", "en osta".
+- Jos lauseessa ei ole selkeää subjektia tai verbiä, käytä passiivia kieltosanalla "ei": esim. "ei mennä", "ei laiteta".
 - Jaan on suomalainen miehen nimi.`,
 			},
 			{"role": "user", "content": "mikko menee töihin"},
