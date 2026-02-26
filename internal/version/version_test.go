@@ -33,8 +33,8 @@ func TestGetHumanReadableVersionDev(t *testing.T) {
 	Version = "dev"
 	result := GetHumanReadableVersion()
 	expected := "gpsp-bot dev (development build)"
-	if result != expected {
-		t.Errorf("Expected %q, got %q", expected, result)
+	if !strings.HasPrefix(result, expected) {
+		t.Errorf("Expected result to start with %q, got %q", expected, result)
 	}
 }
 
@@ -47,8 +47,8 @@ func TestGetHumanReadableVersionTimestamp(t *testing.T) {
 	Version = "20231128151500"
 	result := GetHumanReadableVersion()
 	expected := "gpsp-bot 20231128151500 (built 2023-11-28 15:15:00 UTC)"
-	if result != expected {
-		t.Errorf("Expected %q, got %q", expected, result)
+	if !strings.HasPrefix(result, expected) {
+		t.Errorf("Expected result to start with %q, got %q", expected, result)
 	}
 }
 
@@ -61,8 +61,8 @@ func TestGetHumanReadableVersionSemanticVersion(t *testing.T) {
 	Version = "v1.0.0"
 	result := GetHumanReadableVersion()
 	expected := "gpsp-bot v1.0.0"
-	if result != expected {
-		t.Errorf("Expected %q, got %q", expected, result)
+	if !strings.HasPrefix(result, expected) {
+		t.Errorf("Expected result to start with %q, got %q", expected, result)
 	}
 }
 
@@ -79,5 +79,16 @@ func TestGetHumanReadableVersionContainsVersion(t *testing.T) {
 		if !strings.Contains(result, version) {
 			t.Errorf("Expected result to contain %q, got %q", version, result)
 		}
+	}
+}
+
+// TestGetHumanReadableVersionIncludesToolVersions verifies yt-dlp and ffmpeg info is present
+func TestGetHumanReadableVersionIncludesToolVersions(t *testing.T) {
+	result := GetHumanReadableVersion()
+	if !strings.Contains(result, "yt-dlp:") {
+		t.Errorf("Expected version output to contain yt-dlp version, got %q", result)
+	}
+	if !strings.Contains(result, "ffmpeg:") {
+		t.Errorf("Expected version output to contain ffmpeg version, got %q", result)
 	}
 }
