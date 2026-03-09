@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/napuu/gpsp-bot/internal/version"
+	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
 // TestPingCommand tests the complete flow of processing a /ping command
@@ -67,6 +70,41 @@ func TestVersionCommand(t *testing.T) {
 	expectedResponse := version.GetHumanReadableVersion()
 	if ctx.textResponse != expectedResponse {
 		t.Errorf("Expected text response %q, got %q", expectedResponse, ctx.textResponse)
+	}
+}
+
+// TestEuriborTextResponseIsSetBeforeImageHandler verifies that the text response
+// is constructed before the image handler runs, so the caption is included with the graph.
+func TestEuriborTextResponseIsSetBeforeImageHandler(t *testing.T) {
+	rateDate, err := time.Parse("2006-01-02", "2024-03-01")
+	if err != nil {
+		t.Fatalf("failed to parse date: %v", err)
+	}
+	ctx := &Context{
+		action: Euribor,
+		rates: utils.EuriborRateEntry{
+			Date:         rateDate,
+			ThreeMonths:  3.852,
+			SixMonths:    3.921,
+			TwelveMonths: 3.732,
+		},
+		finalImagePath: "/tmp/some-graph.jpg",
+	}
+
+	constructTextResponseHandler := &ConstructTextResponseHandler{}
+	captureHandler := &mockHandler{}
+	constructTextResponseHandler.SetNext(captureHandler)
+
+	constructTextResponseHandler.Execute(ctx)
+
+	if ctx.textResponse == "" {
+		t.Error("Expected textResponse to be set for Euribor action, but it was empty")
+	}
+	if !strings.Contains(ctx.textResponse, "01.03.") {
+		t.Errorf("Expected textResponse to contain the date, got: %q", ctx.textResponse)
+	}
+	if !strings.Contains(ctx.textResponse, "3.732") {
+		t.Errorf("Expected textResponse to contain 12-month rate, got: %q", ctx.textResponse)
 	}
 }
 

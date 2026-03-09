@@ -53,11 +53,11 @@ func NewChainOfResponsibility() *HandlerChain {
 
 	tuplillaResponseHandler.SetNext(hyvaSuomiResponseHandler)
 	hyvaSuomiResponseHandler.SetNext(videoResponseHandler)
-	videoResponseHandler.SetNext(imageResponseHandler)
-	imageResponseHandler.SetNext(markForNaggingHandler)
+	videoResponseHandler.SetNext(markForNaggingHandler)
 	markForNaggingHandler.SetNext(markForDeletionHandler)
 	markForDeletionHandler.SetNext(constructTextResponseHandler)
-	constructTextResponseHandler.SetNext(deleteMessageHandler)
+	constructTextResponseHandler.SetNext(imageResponseHandler)
+	imageResponseHandler.SetNext(deleteMessageHandler)
 
 	deleteMessageHandler.SetNext(textResponseHandler)
 	textResponseHandler.SetNext(endOfChainHandler)
