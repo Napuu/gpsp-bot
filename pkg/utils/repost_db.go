@@ -40,7 +40,29 @@ func InitRepostDB(dbPath string) error {
 			group_id TEXT NOT NULL,
 			message_id TEXT NOT NULL,
 			created_at TIMESTAMP NOT NULL
-		)
+		);
+		CREATE SEQUENCE IF NOT EXISTS video_stats_id_seq;
+		CREATE TABLE IF NOT EXISTS video_stats (
+			id            BIGINT PRIMARY KEY DEFAULT nextval('video_stats_id_seq'),
+			platform      TEXT NOT NULL,
+			group_id      TEXT NOT NULL,
+			user_id       TEXT NOT NULL,
+			username      TEXT NOT NULL,
+			source_url    TEXT NOT NULL,
+			bot_message_id TEXT NOT NULL,
+			thumbs_up_count INT NOT NULL DEFAULT 0,
+			thumbs_down_count INT NOT NULL DEFAULT 0,
+			is_repost     BOOLEAN NOT NULL DEFAULT FALSE,
+			posted_at     TIMESTAMP NOT NULL
+		);
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_video_stats_lookup
+			ON video_stats (platform, group_id, bot_message_id);
+		-- Migrate pre-existing video_stats tables that were created before
+		-- these columns were added. DuckDB's ALTER TABLE does not support
+		-- NOT NULL with ADD COLUMN, so the defaults are looser than above.
+		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_up_count INT DEFAULT 0;
+		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_down_count INT DEFAULT 0;
+		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE;
 	`
 
 	_, err = conn.Exec(schema)

@@ -29,11 +29,13 @@ func NewChainOfResponsibility() *HandlerChain {
 	constructTextResponseHandler := &handlers.ConstructTextResponseHandler{}
 
 	videoResponseHandler := &handlers.VideoResponseHandler{}
+	videoStatsHandler := &handlers.VideoStatsHandler{}
 	imageResponseHandler := &handlers.ImageResponseHandler{}
 	deleteMessageHandler := &handlers.DeleteMessageHandler{}
 	textResponseHandler := &handlers.TextResponseHandler{}
 	tuplillaResponseHandler := &handlers.TuplillaResponseHandler{}
 	hyvaSuomiResponseHandler := &handlers.HyvaSuomiResponseHandler{}
+	statsHandler := &handlers.StatsHandler{}
 
 	endOfChainHandler := &handlers.EndOfChainHandler{}
 
@@ -49,11 +51,13 @@ func NewChainOfResponsibility() *HandlerChain {
 	videoPostprocessingHandler.SetNext(repostDetectionHandler)
 	repostDetectionHandler.SetNext(euriborHandler)
 
-	euriborHandler.SetNext(tuplillaResponseHandler)
+	euriborHandler.SetNext(statsHandler)
+	statsHandler.SetNext(tuplillaResponseHandler)
 
 	tuplillaResponseHandler.SetNext(hyvaSuomiResponseHandler)
 	hyvaSuomiResponseHandler.SetNext(videoResponseHandler)
-	videoResponseHandler.SetNext(markForNaggingHandler)
+	videoResponseHandler.SetNext(videoStatsHandler)
+	videoStatsHandler.SetNext(markForNaggingHandler)
 	markForNaggingHandler.SetNext(markForDeletionHandler)
 	markForDeletionHandler.SetNext(constructTextResponseHandler)
 	constructTextResponseHandler.SetNext(imageResponseHandler)

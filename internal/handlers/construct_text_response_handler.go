@@ -45,6 +45,8 @@ func (r *ConstructTextResponseHandler) Execute(m *Context) {
 			m.replyToId = m.id
 			m.shouldReplyToMessage = true
 		}
+	case Stats:
+		responseText = m.textResponse
 	case Euribor:
 		responseText = fmt.Sprintf(
 			`

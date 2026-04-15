@@ -30,6 +30,7 @@ const (
 	Ping          Action = "ping"
 	Euribor       Action = "euribor"
 	Version       Action = "version"
+	Stats         Action = "stats"
 )
 
 var ActionMap = map[Action]ActionDescription{
@@ -38,6 +39,7 @@ var ActionMap = map[Action]ActionDescription{
 	Euribor:       "Tuoreet Euribor-korot",
 	Ping:          "Ping",
 	Version:       "Version",
+	Stats:         "Videopostaajien tilastot",
 }
 
 type Context struct {
@@ -99,4 +101,9 @@ type Context struct {
 	pendingFingerprintDbPath  string
 	pendingFingerprintGroupId string
 	pendingFingerprint        []byte
+
+	// Video stats tracking
+	posterUserId   string
+	posterUsername string
+	botMessageId   string
 }
