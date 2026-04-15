@@ -24,10 +24,12 @@ func (h *EndOfChainHandler) Execute(m *Context) {
 	if m.action == DownloadVideo {
 		utils.CleanupTmpDir(config.FromEnv().YTDLP_TMP_DIR)
 
-		// Cleanup old fingerprints
+		// Cleanup old fingerprints (init DB first in case no video was downloaded this run)
 		cfg := config.FromEnv()
 		dbPath := filepath.Join(cfg.REPOST_DB_DIR, "repost_fingerprints.duckdb")
-		if err := utils.CleanupOldFingerprints(dbPath, cleanupMaxAge); err != nil {
+		if err := utils.InitRepostDB(dbPath); err != nil {
+			slog.Warn("Failed to initialize repost database for cleanup", "error", err)
+		} else if err := utils.CleanupOldFingerprints(dbPath, cleanupMaxAge); err != nil {
 			slog.Warn("Failed to cleanup old fingerprints", "error", err)
 		}
 	}

@@ -27,6 +27,14 @@ func (mp *OnTextHandler) Execute(m *Context) {
 				m.replyToId = fmt.Sprint(c.Message().ReplyTo.ID)
 				m.shouldReplyToMessage = true
 			}
+
+			if message.Sender != nil {
+				m.posterUserId = strconv.FormatInt(message.Sender.ID, 10)
+				m.posterUsername = message.Sender.Username
+				if m.posterUsername == "" {
+					m.posterUsername = strings.TrimSpace(message.Sender.FirstName + " " + message.Sender.LastName)
+				}
+			}
 		}
 	case Discord:
 		message := m.DiscordMessage
@@ -38,6 +46,11 @@ func (mp *OnTextHandler) Execute(m *Context) {
 				m.shouldReplyToMessage = true
 			}
 			m.chatId = message.ChannelID
+
+			if message.Author != nil {
+				m.posterUserId = message.Author.ID
+				m.posterUsername = message.Author.Username
+			}
 		}
 	}
 	mp.next.Execute(m)

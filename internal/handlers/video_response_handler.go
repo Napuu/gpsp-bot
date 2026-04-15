@@ -38,6 +38,7 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 				slog.Warn("Failed to send video", "error", err)
 			} else {
 				m.sendVideoSucceeded = true
+				m.botMessageId = fmt.Sprint(sentMessage.ID)
 				// Store fingerprint with the message ID of the bot's response
 				// Skip storage if this is a repost to avoid duplicate entries
 				if !m.isRepost && len(m.pendingFingerprint) > 0 {
@@ -85,6 +86,7 @@ func (r *VideoResponseHandler) Execute(m *Context) {
 				slog.Warn("Failed to send video", "error", err)
 			} else {
 				m.sendVideoSucceeded = true
+				m.botMessageId = sentMessage.ID
 				// Store fingerprint with the message ID of the bot's response
 				// Skip storage if this is a repost to avoid duplicate entries
 				if !m.isRepost && len(m.pendingFingerprint) > 0 {

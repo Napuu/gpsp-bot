@@ -50,6 +50,8 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 			m.action = Euribor
 		case Version:
 			m.action = Version
+		case Stats:
+			m.action = Stats
 		}
 
 		m.parsedText = strings.TrimSpace(strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1))
