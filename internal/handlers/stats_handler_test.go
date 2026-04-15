@@ -21,12 +21,17 @@ func setupStatsTestDB(t *testing.T) string {
 func TestStatsHandlerSetsTextResponse(t *testing.T) {
 	dbPath := setupStatsTestDB(t)
 
-	if err := utils.RecordVideoPost(dbPath, utils.VideoStatEntry{
+	db, err := utils.OpenStatsDB(dbPath)
+	if err != nil {
+		t.Fatalf("OpenStatsDB failed: %v", err)
+	}
+	if err := utils.RecordVideoPost(db, utils.VideoStatEntry{
 		Platform: "discord", GroupId: "discord:999", UserId: "u1", Username: "alice",
 		SourceUrl: "https://youtube.com/watch?v=1", BotMessageId: "m1", PostedAt: time.Now(),
 	}); err != nil {
 		t.Fatalf("RecordVideoPost failed: %v", err)
 	}
+	db.Close()
 
 	t.Setenv("ENABLED_FEATURES", "stats")
 	t.Setenv("REPOST_DB_DIR", filepath.Dir(dbPath))

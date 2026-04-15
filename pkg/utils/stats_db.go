@@ -46,49 +46,43 @@ type RepostStat struct {
 	RepostCount int
 }
 
-// RecordVideoPost inserts one row into video_stats for a successful video send.
-func RecordVideoPost(dbPath string, entry VideoStatEntry) error {
+// OpenStatsDB opens a DuckDB connection for stats queries. Callers are
+// responsible for closing the returned *sql.DB.
+func OpenStatsDB(dbPath string) (*sql.DB, error) {
 	conn, err := sql.Open("duckdb", dbPath)
 	if err != nil {
-		return fmt.Errorf("failed to open DuckDB: %w", err)
+		return nil, fmt.Errorf("failed to open DuckDB: %w", err)
 	}
-	defer conn.Close()
+	return conn, nil
+}
 
+// RecordVideoPost inserts one row into video_stats for a successful video send.
+func RecordVideoPost(db *sql.DB, entry VideoStatEntry) error {
 	query := `
 		INSERT INTO video_stats (platform, group_id, user_id, username, source_url, bot_message_id, is_repost, posted_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	_, err = conn.Exec(query,
+	_, err := db.Exec(query,
 		entry.Platform, entry.GroupId, entry.UserId, entry.Username,
 		entry.SourceUrl, entry.BotMessageId, entry.IsRepost, entry.PostedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to record video stat: %w", err)
 	}
-
 	return nil
 }
 
-// UpdateReactionCount adjusts reaction counts for the given bot message and emoji.
-// emoji should be the raw emoji character (e.g. "👍"). Unrecognised emoji only
-// update the total reaction_count.
-// A delta that matches no row (not a tracked message) is silently ignored.
-func UpdateReactionCount(dbPath string, platform, groupId, botMessageId, emoji string, delta int) error {
-	conn, err := sql.Open("duckdb", dbPath)
-	if err != nil {
-		return fmt.Errorf("failed to open DuckDB: %w", err)
-	}
-	defer conn.Close()
-
+// UpdateReactionCount adjusts per-emoji reaction counts for the given bot
+// message. emoji should be the raw emoji character (e.g. "👍"). Unrecognised
+// emoji are ignored. A delta that matches no row is silently ignored.
+func UpdateReactionCount(db *sql.DB, platform, groupId, botMessageId, emoji string, delta int) error {
 	query := `
 		UPDATE video_stats
-		SET reaction_count    = reaction_count + ?,
-		    thumbs_up_count   = thumbs_up_count   + CASE WHEN ? = '👍' THEN ? ELSE 0 END,
+		SET thumbs_up_count   = thumbs_up_count   + CASE WHEN ? = '👍' THEN ? ELSE 0 END,
 		    thumbs_down_count = thumbs_down_count + CASE WHEN ? = '👎' THEN ? ELSE 0 END
 		WHERE platform = ? AND group_id = ? AND bot_message_id = ?
 	`
-	_, err = conn.Exec(query,
-		delta,
+	_, err := db.Exec(query,
 		emoji, delta,
 		emoji, delta,
 		platform, groupId, botMessageId,
@@ -96,27 +90,21 @@ func UpdateReactionCount(dbPath string, platform, groupId, botMessageId, emoji s
 	if err != nil {
 		return fmt.Errorf("failed to update reaction count: %w", err)
 	}
-
 	return nil
 }
 
 // GetGroupLeaderboard returns the top N posters by post count for the given group.
-func GetGroupLeaderboard(dbPath string, groupId string, limit int) ([]PosterStat, error) {
-	conn, err := sql.Open("duckdb", dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open DuckDB: %w", err)
-	}
-	defer conn.Close()
-
+// Groups strictly by user_id so that a username change does not split a user.
+func GetGroupLeaderboard(db *sql.DB, groupId string, limit int) ([]PosterStat, error) {
 	query := `
-		SELECT user_id, username, COUNT(*) AS post_count
+		SELECT user_id, MAX(username) AS username, COUNT(*) AS post_count
 		FROM video_stats
 		WHERE group_id = ? AND is_repost = FALSE
-		GROUP BY user_id, username
+		GROUP BY user_id
 		ORDER BY post_count DESC
 		LIMIT ?
 	`
-	rows, err := conn.Query(query, groupId, limit)
+	rows, err := db.Query(query, groupId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query leaderboard: %w", err)
 	}
@@ -134,21 +122,19 @@ func GetGroupLeaderboard(dbPath string, groupId string, limit int) ([]PosterStat
 }
 
 // GetTopThumbsUp returns the top N videos by 👍 count for the given group.
-func GetTopThumbsUp(dbPath string, groupId string, limit int) ([]ReactionStat, error) {
-	return queryTopByReactionColumn(dbPath, groupId, "thumbs_up_count", limit)
+func GetTopThumbsUp(db *sql.DB, groupId string, limit int) ([]ReactionStat, error) {
+	return queryTopByReactionColumn(db, groupId, "thumbs_up_count", limit)
 }
 
 // GetTopThumbsDown returns the top N videos by 👎 count for the given group.
-func GetTopThumbsDown(dbPath string, groupId string, limit int) ([]ReactionStat, error) {
-	return queryTopByReactionColumn(dbPath, groupId, "thumbs_down_count", limit)
+func GetTopThumbsDown(db *sql.DB, groupId string, limit int) ([]ReactionStat, error) {
+	return queryTopByReactionColumn(db, groupId, "thumbs_down_count", limit)
 }
 
-func queryTopByReactionColumn(dbPath, groupId, column string, limit int) ([]ReactionStat, error) {
-	conn, err := sql.Open("duckdb", dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open DuckDB: %w", err)
+func queryTopByReactionColumn(db *sql.DB, groupId, column string, limit int) ([]ReactionStat, error) {
+	if column != "thumbs_up_count" && column != "thumbs_down_count" {
+		return nil, fmt.Errorf("invalid reaction column: %s", column)
 	}
-	defer conn.Close()
 
 	query := fmt.Sprintf(`
 		SELECT bot_message_id, username, source_url, COALESCE(%s, 0), posted_at
@@ -158,7 +144,7 @@ func queryTopByReactionColumn(dbPath, groupId, column string, limit int) ([]Reac
 		LIMIT ?
 	`, column, column, column)
 
-	rows, err := conn.Query(query, groupId, limit)
+	rows, err := db.Query(query, groupId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query top %s: %w", column, err)
 	}
@@ -176,22 +162,16 @@ func queryTopByReactionColumn(dbPath, groupId, column string, limit int) ([]Reac
 }
 
 // GetTopReposters returns the top N users who have been caught reposting in the given group.
-func GetTopReposters(dbPath string, groupId string, limit int) ([]RepostStat, error) {
-	conn, err := sql.Open("duckdb", dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open DuckDB: %w", err)
-	}
-	defer conn.Close()
-
+func GetTopReposters(db *sql.DB, groupId string, limit int) ([]RepostStat, error) {
 	query := `
-		SELECT user_id, username, COUNT(*) AS repost_count
+		SELECT user_id, MAX(username) AS username, COUNT(*) AS repost_count
 		FROM video_stats
 		WHERE group_id = ? AND is_repost = TRUE
-		GROUP BY user_id, username
+		GROUP BY user_id
 		ORDER BY repost_count DESC
 		LIMIT ?
 	`
-	rows, err := conn.Query(query, groupId, limit)
+	rows, err := db.Query(query, groupId, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query top reposters: %w", err)
 	}

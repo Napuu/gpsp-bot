@@ -40,6 +40,11 @@ func RunDiscordBot() {
 	chain := chain.NewChainOfResponsibility()
 
 	dbPath := filepath.Join(cfg.REPOST_DB_DIR, "repost_fingerprints.duckdb")
+	statsDB, err := utils.OpenStatsDB(dbPath)
+	if err != nil {
+		slog.Error("Failed to open stats DB for reaction tracking", "error", err)
+		return
+	}
 
 	// Add a handler for messages
 	dg.AddHandler(wrapDiscoHandler(chain))
@@ -50,7 +55,7 @@ func RunDiscordBot() {
 			return
 		}
 		groupId := "discord:" + r.ChannelID
-		if err := utils.UpdateReactionCount(dbPath, "discord", groupId, r.MessageID, r.Emoji.Name, +1); err != nil {
+		if err := utils.UpdateReactionCount(statsDB, "discord", groupId, r.MessageID, r.Emoji.Name, +1); err != nil {
 			slog.Warn("Failed to update Discord reaction count", "error", err)
 		}
 	})
@@ -59,7 +64,7 @@ func RunDiscordBot() {
 			return
 		}
 		groupId := "discord:" + r.ChannelID
-		if err := utils.UpdateReactionCount(dbPath, "discord", groupId, r.MessageID, r.Emoji.Name, -1); err != nil {
+		if err := utils.UpdateReactionCount(statsDB, "discord", groupId, r.MessageID, r.Emoji.Name, -1); err != nil {
 			slog.Warn("Failed to update Discord reaction count", "error", err)
 		}
 	})

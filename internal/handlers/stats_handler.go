@@ -27,13 +27,26 @@ func (h *StatsHandler) Execute(m *Context) {
 			platform = "telegram"
 		case Discord:
 			platform = "discord"
+		default:
+			slog.Warn("StatsHandler: unknown service", "service", m.Service)
+			h.next.Execute(m)
+			return
 		}
 		groupId := platform + ":" + m.chatId
 
-		posters, postersErr := utils.GetGroupLeaderboard(dbPath, groupId, 10)
-		thumbsUp, thumbsUpErr := utils.GetTopThumbsUp(dbPath, groupId, 5)
-		thumbsDown, thumbsDownErr := utils.GetTopThumbsDown(dbPath, groupId, 5)
-		reposters, repostersErr := utils.GetTopReposters(dbPath, groupId, 5)
+		db, err := utils.OpenStatsDB(dbPath)
+		if err != nil {
+			slog.Warn("Failed to open stats DB", "error", err)
+			m.textResponse = buildStatsText(nil, err, nil, err, nil, err, nil, err)
+			h.next.Execute(m)
+			return
+		}
+		defer db.Close()
+
+		posters, postersErr := utils.GetGroupLeaderboard(db, groupId, 10)
+		thumbsUp, thumbsUpErr := utils.GetTopThumbsUp(db, groupId, 5)
+		thumbsDown, thumbsDownErr := utils.GetTopThumbsDown(db, groupId, 5)
+		reposters, repostersErr := utils.GetTopReposters(db, groupId, 5)
 
 		m.textResponse = buildStatsText(posters, postersErr, thumbsUp, thumbsUpErr, thumbsDown, thumbsDownErr, reposters, repostersErr)
 	}

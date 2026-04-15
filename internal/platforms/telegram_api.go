@@ -1,6 +1,7 @@
 package platforms
 
 import (
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -38,10 +39,15 @@ func TelebotCompatibleVisibleCommands() []tele.Command {
 func RunTelegramBot() {
 	cfg := config.FromEnv()
 	dbPath := filepath.Join(cfg.REPOST_DB_DIR, "repost_fingerprints.duckdb")
-	bot := getTelegramBot(dbPath)
+	statsDB, err := utils.OpenStatsDB(dbPath)
+	if err != nil {
+		slog.Error("Failed to open stats DB for reaction tracking", "error", err)
+		return
+	}
+	bot := getTelegramBot(statsDB)
 	chain := chain.NewChainOfResponsibility()
 
-	err := bot.SetCommands(TelebotCompatibleVisibleCommands())
+	err = bot.SetCommands(TelebotCompatibleVisibleCommands())
 	if err != nil {
 		slog.Error(err.Error())
 	}
@@ -51,7 +57,7 @@ func RunTelegramBot() {
 	go bot.Start()
 }
 
-func getTelegramBot(dbPath string) *tele.Bot {
+func getTelegramBot(statsDB *sql.DB) *tele.Bot {
 	inner := &tele.LongPoller{
 		Timeout: 10 * time.Second,
 		AllowedUpdates: []string{
@@ -69,7 +75,7 @@ func getTelegramBot(dbPath string) *tele.Bot {
 			// Find added reactions (present in New but not Old)
 			for _, r := range mr.NewReaction {
 				if !containsEmoji(mr.OldReaction, r.Emoji) {
-					if err := utils.UpdateReactionCount(dbPath, "telegram", groupId, botMsgId, r.Emoji, +1); err != nil {
+					if err := utils.UpdateReactionCount(statsDB, "telegram", groupId, botMsgId, r.Emoji, +1); err != nil {
 						slog.Warn("Failed to update Telegram reaction count", "error", err)
 					}
 				}
@@ -77,7 +83,7 @@ func getTelegramBot(dbPath string) *tele.Bot {
 			// Find removed reactions (present in Old but not New)
 			for _, r := range mr.OldReaction {
 				if !containsEmoji(mr.NewReaction, r.Emoji) {
-					if err := utils.UpdateReactionCount(dbPath, "telegram", groupId, botMsgId, r.Emoji, -1); err != nil {
+					if err := utils.UpdateReactionCount(statsDB, "telegram", groupId, botMsgId, r.Emoji, -1); err != nil {
 						slog.Warn("Failed to update Telegram reaction count", "error", err)
 					}
 				}

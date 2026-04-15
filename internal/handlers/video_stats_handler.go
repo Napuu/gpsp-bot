@@ -28,7 +28,19 @@ func (h *VideoStatsHandler) Execute(m *Context) {
 			platform = "telegram"
 		case Discord:
 			platform = "discord"
+		default:
+			slog.Warn("VideoStatsHandler: unknown service, skipping", "service", m.Service)
+			h.next.Execute(m)
+			return
 		}
+
+		db, err := utils.OpenStatsDB(dbPath)
+		if err != nil {
+			slog.Warn("Failed to open stats DB", "error", err)
+			h.next.Execute(m)
+			return
+		}
+		defer db.Close()
 
 		entry := utils.VideoStatEntry{
 			Platform:     platform,
@@ -40,7 +52,7 @@ func (h *VideoStatsHandler) Execute(m *Context) {
 			IsRepost:     m.isRepost,
 			PostedAt:     time.Now(),
 		}
-		if err := utils.RecordVideoPost(dbPath, entry); err != nil {
+		if err := utils.RecordVideoPost(db, entry); err != nil {
 			slog.Warn("Failed to record video stat", "error", err)
 		} else {
 			slog.Debug("Video stat recorded", "platform", platform, "user", m.posterUsername, "url", m.url)

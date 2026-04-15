@@ -50,7 +50,6 @@ func InitRepostDB(dbPath string) error {
 			username      TEXT NOT NULL,
 			source_url    TEXT NOT NULL,
 			bot_message_id TEXT NOT NULL,
-			reaction_count  INT NOT NULL DEFAULT 0,
 			thumbs_up_count INT NOT NULL DEFAULT 0,
 			thumbs_down_count INT NOT NULL DEFAULT 0,
 			is_repost     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -58,6 +57,9 @@ func InitRepostDB(dbPath string) error {
 		);
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_video_stats_lookup
 			ON video_stats (platform, group_id, bot_message_id);
+		-- Migrate pre-existing video_stats tables that were created before
+		-- these columns were added. DuckDB's ALTER TABLE does not support
+		-- NOT NULL with ADD COLUMN, so the defaults are looser than above.
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_up_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_down_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE;
