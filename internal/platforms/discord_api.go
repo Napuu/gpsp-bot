@@ -40,6 +40,10 @@ func RunDiscordBot() {
 	chain := chain.NewChainOfResponsibility()
 
 	dbPath := filepath.Join(cfg.REPOST_DB_DIR, "repost_fingerprints.duckdb")
+	if err := utils.InitRepostDB(dbPath); err != nil {
+		slog.Error("Failed to initialize stats DB", "error", err)
+		return
+	}
 	statsDB, err := utils.OpenStatsDB(dbPath)
 	if err != nil {
 		slog.Error("Failed to open stats DB for reaction tracking", "error", err)
