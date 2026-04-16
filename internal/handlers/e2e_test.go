@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/napuu/gpsp-bot/pkg/utils"
@@ -264,5 +265,112 @@ func TestVideoDownloadInvalidURL_E2E(t *testing.T) {
 
 	if len(mock.SentVideos) != 0 {
 		t.Errorf("expected no sendVideo calls for invalid URL, got %d", len(mock.SentVideos))
+	}
+}
+
+func TestReactionsAndStatsE2E(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping e2e test in short mode")
+	}
+	if _, err := exec.LookPath("ffmpeg"); err != nil {
+		t.Skip("ffmpeg not found on PATH, skipping e2e test")
+	}
+	if _, err := exec.LookPath("ffprobe"); err != nil {
+		t.Skip("ffprobe not found on PATH, skipping e2e test")
+	}
+
+	tmpDir := t.TempDir()
+	dbDir := t.TempDir()
+
+	t.Setenv("ENABLED_FEATURES", "dl,stats")
+	t.Setenv("YTDLP_TMP_DIR", tmpDir)
+	t.Setenv("REPOST_DB_DIR", dbDir)
+
+	dbPath := filepath.Join(dbDir, "repost_fingerprints.duckdb")
+	if err := utils.InitRepostDB(dbPath); err != nil {
+		t.Fatalf("failed to init repost DB: %v", err)
+	}
+
+	mock := NewMockTelegramServer(t)
+	videoSrv := newVideoFileServer(t)
+	bot := newTestBot(t, mock.Server.URL)
+
+	chain := buildFullChain()
+	bot.Handle(tele.OnText, func(c tele.Context) error {
+		chain.Execute(&Context{
+			TelebotContext: c,
+			Telebot:        bot,
+			Service:        Telegram,
+		})
+		return nil
+	})
+
+	// Step 1: User 1 posts a video via /dl.
+	bot.ProcessUpdate(tele.Update{
+		Message: &tele.Message{
+			ID:   10,
+			Text: "/dl " + videoSrv.URL + "/sample.mp4",
+			Chat: &tele.Chat{ID: -1001234567890},
+			Sender: &tele.User{
+				ID:       111,
+				Username: "poster",
+			},
+		},
+	})
+
+	if len(mock.SentVideos) == 0 {
+		t.Fatal("expected at least one sendVideo call after /dl, got none")
+	}
+
+	// Step 2: User 2 reacts with 👍. The mock returns message_id 42 for sendVideo,
+	// so botMessageId stored in DB is "42". groupId = "telegram:-1001234567890".
+	db, err := utils.OpenStatsDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open stats DB for reaction: %v", err)
+	}
+	if err := utils.UpdateReactionCount(db, "telegram", "telegram:-1001234567890", "42", "👍", 1); err != nil {
+		db.Close()
+		t.Fatalf("failed to update reaction count: %v", err)
+	}
+	db.Close()
+
+	// Step 3: User 3 checks /stats.
+	bot.ProcessUpdate(tele.Update{
+		Message: &tele.Message{
+			ID:   11,
+			Text: "/stats",
+			Chat: &tele.Chat{ID: -1001234567890},
+			Sender: &tele.User{
+				ID:       333,
+				Username: "statsuser",
+			},
+		},
+	})
+
+	// Find the stats message among all sent messages.
+	var statsText string
+	for _, msg := range mock.SentMessages {
+		if strings.Contains(msg.Text, "Top video posters:") {
+			statsText = msg.Text
+			break
+		}
+	}
+	if statsText == "" {
+		t.Fatalf("expected a sendMessage containing 'Top video posters:', got messages: %+v", mock.SentMessages)
+	}
+
+	checks := []struct {
+		substr string
+		desc   string
+	}{
+		{"poster", "poster username in leaderboard"},
+		{"1 video", "video count for poster"},
+		{"👍 Most liked:", "most liked section header"},
+		{"poster — 1", "poster with 1 thumbs-up in most liked"},
+	}
+	for _, c := range checks {
+		if !strings.Contains(statsText, c.substr) {
+			t.Errorf("stats message missing %s: want %q in:\n%s", c.desc, c.substr, statsText)
+		}
 	}
 }
