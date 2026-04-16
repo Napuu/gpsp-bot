@@ -1,7 +1,6 @@
 package platforms
 
 import (
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -43,16 +42,10 @@ func RunTelegramBot() {
 		slog.Error("Failed to initialize stats DB", "error", err)
 		return
 	}
-	statsDB, err := utils.OpenStatsDB(dbPath)
-	if err != nil {
-		slog.Error("Failed to open stats DB for reaction tracking", "error", err)
-		return
-	}
-	bot := getTelegramBot(statsDB)
+	bot := getTelegramBot(dbPath)
 	chain := chain.NewChainOfResponsibility()
 
-	err = bot.SetCommands(TelebotCompatibleVisibleCommands())
-	if err != nil {
+	if err := bot.SetCommands(TelebotCompatibleVisibleCommands()); err != nil {
 		slog.Error(err.Error())
 	}
 
@@ -61,7 +54,7 @@ func RunTelegramBot() {
 	go bot.Start()
 }
 
-func getTelegramBot(statsDB *sql.DB) *tele.Bot {
+func getTelegramBot(dbPath string) *tele.Bot {
 	inner := &tele.LongPoller{
 		Timeout: 10 * time.Second,
 		AllowedUpdates: []string{
@@ -76,10 +69,17 @@ func getTelegramBot(statsDB *sql.DB) *tele.Bot {
 			groupId := "telegram:" + fmt.Sprint(mr.Chat.ID)
 			botMsgId := fmt.Sprint(mr.MessageID)
 
+			db, err := utils.OpenStatsDB(dbPath)
+			if err != nil {
+				slog.Warn("Failed to open stats DB for reaction", "error", err)
+				return true
+			}
+			defer db.Close()
+
 			// Find added reactions (present in New but not Old)
 			for _, r := range mr.NewReaction {
 				if !containsEmoji(mr.OldReaction, r.Emoji) {
-					if err := utils.UpdateReactionCount(statsDB, "telegram", groupId, botMsgId, r.Emoji, +1); err != nil {
+					if err := utils.UpdateReactionCount(db, "telegram", groupId, botMsgId, r.Emoji, +1); err != nil {
 						slog.Warn("Failed to update Telegram reaction count", "error", err)
 					}
 				}
@@ -87,7 +87,7 @@ func getTelegramBot(statsDB *sql.DB) *tele.Bot {
 			// Find removed reactions (present in Old but not New)
 			for _, r := range mr.OldReaction {
 				if !containsEmoji(mr.NewReaction, r.Emoji) {
-					if err := utils.UpdateReactionCount(statsDB, "telegram", groupId, botMsgId, r.Emoji, -1); err != nil {
+					if err := utils.UpdateReactionCount(db, "telegram", groupId, botMsgId, r.Emoji, -1); err != nil {
 						slog.Warn("Failed to update Telegram reaction count", "error", err)
 					}
 				}
