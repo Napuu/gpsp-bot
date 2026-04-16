@@ -76,17 +76,22 @@ func RecordVideoPost(db *sql.DB, entry VideoStatEntry) error {
 // message. emoji should be the raw emoji character (e.g. "👍"). Unrecognised
 // emoji are ignored. A delta that matches no row is silently ignored.
 func UpdateReactionCount(db *sql.DB, platform, groupId, botMessageId, emoji string, delta int) error {
-	query := `
+	var column string
+	switch emoji {
+	case EmojiThumbsUp:
+		column = "thumbs_up_count"
+	case EmojiThumbsDown:
+		column = "thumbs_down_count"
+	default:
+		return nil // unrecognised emoji, nothing to update
+	}
+
+	query := fmt.Sprintf(`
 		UPDATE video_stats
-		SET thumbs_up_count   = thumbs_up_count   + CASE WHEN ? = '👍' THEN ? ELSE 0 END,
-		    thumbs_down_count = thumbs_down_count + CASE WHEN ? = '👎' THEN ? ELSE 0 END
+		SET %s = %s + ?
 		WHERE platform = ? AND group_id = ? AND bot_message_id = ?
-	`
-	_, err := db.Exec(query,
-		emoji, delta,
-		emoji, delta,
-		platform, groupId, botMessageId,
-	)
+	`, column, column)
+	_, err := db.Exec(query, delta, platform, groupId, botMessageId)
 	if err != nil {
 		return fmt.Errorf("failed to update reaction count: %w", err)
 	}
