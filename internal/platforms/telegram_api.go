@@ -9,6 +9,7 @@ import (
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/internal/handlers"
+	"github.com/napuu/gpsp-bot/internal/telereactions"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 
 	tele "gopkg.in/telebot.v4"
@@ -56,44 +57,25 @@ func RunTelegramBot() {
 
 func getTelegramBot(dbPath string) *tele.Bot {
 	inner := &tele.LongPoller{
-		Timeout: 10 * time.Second,
-		AllowedUpdates: []string{
-			"message",
-			"message_reaction",
-		},
+		Timeout:        10 * time.Second,
+		AllowedUpdates: []string{"message"},
 	}
 
-	poller := tele.NewMiddlewarePoller(inner, func(u *tele.Update) bool {
-		if u.MessageReaction != nil {
-			mr := u.MessageReaction
-			groupId := "telegram:" + fmt.Sprint(mr.Chat.ID)
-			botMsgId := fmt.Sprint(mr.MessageID)
-
-			db, err := utils.OpenStatsDB(dbPath)
-			if err != nil {
-				slog.Warn("Failed to open stats DB for reaction", "error", err)
-				return true
-			}
-			defer db.Close()
-
-			// Find added reactions (present in New but not Old)
-			for _, r := range mr.NewReaction {
-				if !containsEmoji(mr.OldReaction, r.Emoji) {
-					if err := utils.UpdateReactionCount(db, "telegram", groupId, botMsgId, r.Emoji, +1); err != nil {
-						slog.Warn("Failed to update Telegram reaction count", "error", err)
-					}
-				}
-			}
-			// Find removed reactions (present in Old but not New)
-			for _, r := range mr.OldReaction {
-				if !containsEmoji(mr.NewReaction, r.Emoji) {
-					if err := utils.UpdateReactionCount(db, "telegram", groupId, botMsgId, r.Emoji, -1); err != nil {
-						slog.Warn("Failed to update Telegram reaction count", "error", err)
-					}
-				}
-			}
+	updateCount := func(e telereactions.Event, delta int) {
+		db, err := utils.OpenStatsDB(dbPath)
+		if err != nil {
+			slog.Warn("Failed to open stats DB for reaction", "error", err)
+			return
 		}
-		return true
+		defer db.Close()
+		groupId := "telegram:" + fmt.Sprint(e.Chat.ID)
+		if err := utils.UpdateReactionCount(db, "telegram", groupId, fmt.Sprint(e.MessageID), e.Emoji, delta); err != nil {
+			slog.Warn("Failed to update Telegram reaction count", "error", err)
+		}
+	}
+	poller := telereactions.Wrap(inner, telereactions.Handlers{
+		OnAdd:    func(e telereactions.Event) { updateCount(e, +1) },
+		OnRemove: func(e telereactions.Event) { updateCount(e, -1) },
 	})
 
 	pref := tele.Settings{
@@ -108,14 +90,4 @@ func getTelegramBot(dbPath string) *tele.Bot {
 	}
 
 	return b
-}
-
-// containsEmoji reports whether emoji e is present in the reaction slice.
-func containsEmoji(reactions []tele.Reaction, emoji string) bool {
-	for _, r := range reactions {
-		if r.Emoji == emoji {
-			return true
-		}
-	}
-	return false
 }
