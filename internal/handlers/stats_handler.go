@@ -18,6 +18,7 @@ func (h *StatsHandler) Execute(m *Context) {
 	slog.Debug("Entering StatsHandler")
 
 	if m.action == Stats {
+		m.disableWebPreview = true
 		cfg := config.FromEnv()
 		dbPath := filepath.Join(cfg.REPOST_DB_DIR, statsDBFileName)
 

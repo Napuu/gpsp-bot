@@ -63,6 +63,10 @@ type Context struct {
 	imageReplyToId            string
 	action                    Action
 	url                       string
+	// When true, suppress link previews / embeds on the outgoing text response.
+	// Used by /stats where URLs are informational and auto-expanding them would
+	// dominate the message.
+	disableWebPreview bool
 
 	doneTyping         chan struct{}
 	gotDubz            bool
