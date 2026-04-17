@@ -36,27 +36,33 @@ func (r *TextResponseHandler) Execute(m *Context) {
 
 	switch m.Service {
 	case Telegram:
+		opts := &tele.SendOptions{DisableWebPagePreview: m.disableWebPreview}
 		if m.shouldReplyToMessage {
 			chatId := tele.ChatID(utils.S2I(m.chatId))
-			message := &tele.Message{
+			opts.ReplyTo = &tele.Message{
 				Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
 				ID:   utils.S2I(m.replyToId),
 			}
-			m.Telebot.Send(chatId, m.textResponse, &tele.SendOptions{ReplyTo: message})
+			m.Telebot.Send(chatId, m.textResponse, opts)
 		} else if m.textResponse != "" {
-			m.TelebotContext.Send(m.textResponse)
+			m.TelebotContext.Send(m.textResponse, opts)
 		}
 
 	case Discord:
+		if m.textResponse == "" {
+			break
+		}
+		send := &discordgo.MessageSend{Content: m.textResponse}
+		if m.disableWebPreview {
+			send.Flags = discordgo.MessageFlagsSuppressEmbeds
+		}
 		if m.shouldReplyToMessage {
-			message := &discordgo.MessageReference{
+			send.Reference = &discordgo.MessageReference{
 				ChannelID: m.chatId,
 				MessageID: m.replyToId,
 			}
-			m.DiscordSession.ChannelMessageSendReply(m.chatId, m.textResponse, message)
-		} else if m.textResponse != "" {
-			m.DiscordSession.ChannelMessageSend(m.chatId, m.textResponse)
 		}
+		m.DiscordSession.ChannelMessageSendComplex(m.chatId, send)
 	}
 
 	r.next.Execute(m)
