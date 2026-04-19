@@ -47,6 +47,17 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 		return
 	}
 
+	// Extract OCR text hash from a middle frame
+	tmpDir := config.FromEnv().YTDLP_TMP_DIR
+	ocrHash, ocrConfident, ocrErr := utils.ExtractOCRText(m.finalVideoPath, tmpDir)
+	if ocrErr != nil {
+		slog.Warn("OCR extraction failed", "error", ocrErr)
+	}
+	if ocrConfident {
+		m.pendingOCRText = ocrHash
+		slog.Debug("OCR text hash extracted", "hash", ocrHash)
+	}
+
 	// Build platform-prefixed group_id
 	var platformPrefix string
 	switch m.Service {
@@ -74,10 +85,30 @@ func (r *RepostDetectionHandler) Execute(m *Context) {
 		m.pendingFingerprintDbPath = dbPath
 		slog.Debug("Fingerprint data prepared for storage after message is sent", "groupId", groupId)
 	} else if len(matches) > 0 {
+		// Filter matches using OCR: if both videos have OCR text but text differs, skip match
+		var filteredMessageIds []string
+		for _, match := range matches {
+			if m.pendingOCRText != "" && match.OCRTextHash != "" && m.pendingOCRText != match.OCRTextHash {
+				slog.Info("OCR text hash differs, skipping visual match", "newHash", m.pendingOCRText, "existingHash", match.OCRTextHash, "messageId", match.MessageID)
+				continue
+			}
+			filteredMessageIds = append(filteredMessageIds, match.MessageID)
+		}
+
+		if len(filteredMessageIds) == 0 {
+			// All matches were filtered out by OCR — not a repost
+			m.pendingFingerprint = fingerprint
+			m.pendingFingerprintGroupId = groupId
+			m.pendingFingerprintDbPath = dbPath
+			slog.Debug("All visual matches overridden by OCR text difference", "groupId", groupId)
+			r.next.Execute(m)
+			return
+		}
+
 		// Repost detected
 		m.isRepost = true
-		m.repostOriginalMessageIds = matches
-		slog.Info("Repost detected", "groupId", groupId, "matches", len(matches))
+		m.repostOriginalMessageIds = filteredMessageIds
+		slog.Info("Repost detected", "groupId", groupId, "matches", len(filteredMessageIds))
 
 		// Generate composite image with first frame
 		if m.finalVideoPath != "" {

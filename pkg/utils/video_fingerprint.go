@@ -2,8 +2,14 @@ package utils
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"math"
 	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // GetVideoFingerprint returns a slice of bytes representing the video structure
@@ -77,4 +83,103 @@ func CalculateSimilarity(fp1, fp2 []byte) float64 {
 	score := overlapScore * lengthRatio
 
 	return score
+}
+
+// ExtractOCRText extracts text from a video frame using tesseract.
+// Returns the extracted text, whether the result is high-confidence, and any error.
+// If tesseract is not installed, returns ("", false, nil) for graceful degradation.
+func ExtractOCRText(videoPath, tmpDir string) (string, bool, error) {
+	// Check if tesseract is available
+	if _, err := exec.LookPath("tesseract"); err != nil {
+		return "", false, nil
+	}
+
+	// Get video duration via ffprobe
+	durationCmd := exec.Command("ffprobe",
+		"-v", "error",
+		"-show_entries", "format=duration",
+		"-of", "default=noprint_wrappers=1:nokey=1",
+		videoPath,
+	)
+	var durationOut bytes.Buffer
+	durationCmd.Stdout = &durationOut
+	durationCmd.Stderr = nil
+	if err := durationCmd.Run(); err != nil {
+		return "", false, fmt.Errorf("ffprobe duration failed: %w", err)
+	}
+
+	duration, err := strconv.ParseFloat(strings.TrimSpace(durationOut.String()), 64)
+	if err != nil || duration <= 0 {
+		return "", false, nil
+	}
+
+	midpoint := duration / 2.0
+
+	// Extract one frame at midpoint (640px wide for OCR legibility)
+	framePath := filepath.Join(tmpDir, "ocr_frame.png")
+	extractCmd := exec.Command("ffmpeg",
+		"-y",
+		"-ss", fmt.Sprintf("%.3f", midpoint),
+		"-i", videoPath,
+		"-frames:v", "1",
+		"-vf", "scale=640:-1",
+		framePath,
+	)
+	extractCmd.Stderr = nil
+	if err := extractCmd.Run(); err != nil {
+		return "", false, fmt.Errorf("ffmpeg frame extract failed: %w", err)
+	}
+
+	// Run tesseract with TSV output for confidence data
+	tsvCmd := exec.Command("tesseract", framePath, "stdout", "--psm", "6", "tsv")
+	var tsvOut bytes.Buffer
+	tsvCmd.Stdout = &tsvOut
+	tsvCmd.Stderr = nil
+	if err := tsvCmd.Run(); err != nil {
+		return "", false, fmt.Errorf("tesseract failed: %w", err)
+	}
+
+	// Parse TSV output: filter words with conf >= 80
+	var words []string
+	allConfident := true
+	for i, line := range strings.Split(tsvOut.String(), "\n") {
+		if i == 0 { // skip header
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if len(fields) < 12 {
+			continue
+		}
+		text := strings.TrimSpace(fields[11])
+		if text == "" || text == "-1" {
+			continue
+		}
+		conf, err := strconv.Atoi(strings.TrimSpace(fields[10]))
+		if err != nil {
+			continue
+		}
+		if conf < 80 {
+			allConfident = false
+			continue
+		}
+		words = append(words, text)
+	}
+
+	normalized := NormalizeOCRText(strings.Join(words, " "))
+
+	// Require all words confident and total text >= 3 chars
+	confident := allConfident && len(words) > 0 && len(normalized) >= 3
+	if !confident {
+		return "", false, nil
+	}
+
+	hash := sha256.Sum256([]byte(normalized))
+	return hex.EncodeToString(hash[:]), true, nil
+}
+
+// NormalizeOCRText lowercases, collapses whitespace, and trims OCR text.
+func NormalizeOCRText(text string) string {
+	text = strings.ToLower(text)
+	text = strings.Join(strings.Fields(text), " ")
+	return strings.TrimSpace(text)
 }

@@ -105,6 +105,7 @@ type Context struct {
 	pendingFingerprintDbPath  string
 	pendingFingerprintGroupId string
 	pendingFingerprint        []byte
+	pendingOCRText            string
 
 	// Video stats tracking
 	posterUserId   string

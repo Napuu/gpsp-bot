@@ -63,6 +63,7 @@ func InitRepostDB(dbPath string) error {
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_up_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_down_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE;
+		ALTER TABLE fingerprints ADD COLUMN IF NOT EXISTS ocr_text_hash TEXT;
 	`
 
 	_, err = conn.Exec(schema)
@@ -73,8 +74,14 @@ func InitRepostDB(dbPath string) error {
 	return nil
 }
 
-// StoreFingerprint inserts a new fingerprint with group_id, message_id and timestamp
-func StoreFingerprint(dbPath string, fingerprint []byte, groupId string, messageId string) error {
+// FingerprintMatch represents a visual fingerprint match with optional OCR text.
+type FingerprintMatch struct {
+	MessageID   string
+	OCRTextHash string
+}
+
+// StoreFingerprint inserts a new fingerprint with group_id, message_id, optional OCR text, and timestamp.
+func StoreFingerprint(dbPath string, fingerprint []byte, groupId string, messageId string, ocrText string) error {
 	conn, err := sql.Open("duckdb", dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open DuckDB: %w", err)
@@ -82,11 +89,16 @@ func StoreFingerprint(dbPath string, fingerprint []byte, groupId string, message
 	defer conn.Close()
 
 	query := `
-		INSERT INTO fingerprints (fingerprint, group_id, message_id, created_at)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO fingerprints (fingerprint, group_id, message_id, ocr_text_hash, created_at)
+		VALUES (?, ?, ?, ?, ?)
 	`
 
-	_, err = conn.Exec(query, fingerprint, groupId, messageId, time.Now())
+	var ocrVal interface{}
+	if ocrText != "" {
+		ocrVal = ocrText
+	}
+
+	_, err = conn.Exec(query, fingerprint, groupId, messageId, ocrVal, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to store fingerprint: %w", err)
 	}
@@ -95,17 +107,16 @@ func StoreFingerprint(dbPath string, fingerprint []byte, groupId string, message
 }
 
 // FindSimilarFingerprints queries fingerprints for the specific group_id,
-// compares using CalculateSimilarity, and returns message IDs of matches above threshold
-func FindSimilarFingerprints(dbPath string, fingerprint []byte, groupId string, threshold float64) ([]string, error) {
+// compares using CalculateSimilarity, and returns matches above threshold with OCR text.
+func FindSimilarFingerprints(dbPath string, fingerprint []byte, groupId string, threshold float64) ([]FingerprintMatch, error) {
 	conn, err := sql.Open("duckdb", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open DuckDB: %w", err)
 	}
 	defer conn.Close()
 
-	// Query all fingerprints for this group_id
 	query := `
-		SELECT fingerprint, message_id
+		SELECT fingerprint, message_id, ocr_text_hash
 		FROM fingerprints
 		WHERE group_id = ?
 	`
@@ -116,19 +127,24 @@ func FindSimilarFingerprints(dbPath string, fingerprint []byte, groupId string, 
 	}
 	defer rows.Close()
 
-	var matches []string
+	var matches []FingerprintMatch
 	for rows.Next() {
 		var storedFingerprint []byte
 		var messageId string
+		var ocrTextHash sql.NullString
 
-		if err := rows.Scan(&storedFingerprint, &messageId); err != nil {
+		if err := rows.Scan(&storedFingerprint, &messageId, &ocrTextHash); err != nil {
 			slog.Warn("Failed to scan fingerprint row", "error", err)
 			continue
 		}
 
 		similarity := CalculateSimilarity(fingerprint, storedFingerprint)
 		if similarity >= threshold {
-			matches = append(matches, messageId)
+			match := FingerprintMatch{MessageID: messageId}
+			if ocrTextHash.Valid {
+				match.OCRTextHash = ocrTextHash.String
+			}
+			matches = append(matches, match)
 		}
 	}
 
