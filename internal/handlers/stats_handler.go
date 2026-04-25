@@ -38,7 +38,7 @@ func (h *StatsHandler) Execute(m *Context) {
 		db, err := utils.OpenStatsDB(dbPath)
 		if err != nil {
 			slog.Warn("Failed to open stats DB", "error", err)
-			m.textResponse = buildStatsText(nil, err, nil, err, nil, err, nil, err)
+			m.textResponse = buildStatsText(m, nil, err, nil, err, nil, err, nil, err)
 			h.next.Execute(m)
 			return
 		}
@@ -49,7 +49,7 @@ func (h *StatsHandler) Execute(m *Context) {
 		thumbsDown, thumbsDownErr := utils.GetTopThumbsDown(db, groupId, 5)
 		reposters, repostersErr := utils.GetTopReposters(db, groupId, 5)
 
-		m.textResponse = buildStatsText(posters, postersErr, thumbsUp, thumbsUpErr, thumbsDown, thumbsDownErr, reposters, repostersErr)
+		m.textResponse = buildStatsText(m, posters, postersErr, thumbsUp, thumbsUpErr, thumbsDown, thumbsDownErr, reposters, repostersErr)
 	}
 
 	h.next.Execute(m)
@@ -60,6 +60,7 @@ func (h *StatsHandler) SetNext(next ContextHandler) {
 }
 
 func buildStatsText(
+	m *Context,
 	posters []utils.PosterStat, postersErr error,
 	thumbsUp []utils.ReactionStat, thumbsUpErr error,
 	thumbsDown []utils.ReactionStat, thumbsDownErr error,
@@ -71,10 +72,10 @@ func buildStatsText(
 	appendPosterSection(&sb, posters, postersErr)
 
 	sb.WriteString("\n👍 Most liked:\n")
-	appendReactionSection(&sb, thumbsUp, thumbsUpErr)
+	appendReactionSection(m, &sb, thumbsUp, thumbsUpErr)
 
 	sb.WriteString("\n👎 Most disliked:\n")
-	appendReactionSection(&sb, thumbsDown, thumbsDownErr)
+	appendReactionSection(m, &sb, thumbsDown, thumbsDownErr)
 
 	sb.WriteString("\nTop reposters:\n")
 	appendReposterSection(&sb, reposters, repostersErr)
@@ -104,7 +105,7 @@ func appendPosterSection(sb *strings.Builder, posters []utils.PosterStat, err er
 	}
 }
 
-func appendReactionSection(sb *strings.Builder, videos []utils.ReactionStat, err error) {
+func appendReactionSection(m *Context, sb *strings.Builder, videos []utils.ReactionStat, err error) {
 	if err != nil {
 		sb.WriteString("(error fetching data)\n")
 		return
@@ -118,7 +119,29 @@ func appendReactionSection(sb *strings.Builder, videos []utils.ReactionStat, err
 		if name == "" {
 			name = "unknown"
 		}
-		sb.WriteString(fmt.Sprintf("%d. %s — %d (%s)\n", i+1, name, v.ReactionCount, v.SourceUrl))
+		
+		url := v.SourceUrl
+		if v.BotMessageId != "" {
+			if m.Service == Telegram {
+				if m.chatUsername != "" {
+					// Public Telegram chats can be linked directly by username.
+					url = fmt.Sprintf("https://t.me/%s/%s", m.chatUsername, v.BotMessageId)
+				} else if strings.HasPrefix(m.chatId, "-100") {
+					// Telegram supergroups/channels often only expose the internal -100 ID.
+					url = fmt.Sprintf("https://t.me/c/%s/%s", strings.TrimPrefix(m.chatId, "-100"), v.BotMessageId)
+				} else if strings.HasPrefix(m.chatId, "-") {
+					// Other negative Telegram IDs are not guaranteed to map to a valid public link.
+					url = fmt.Sprintf("https://t.me/c/%s/%s", strings.TrimPrefix(m.chatId, "-"), v.BotMessageId)
+				}
+			} else if m.Service == Discord {
+				if m.guildId != "" {
+					// Discord channel deep links need a guild ID; without it the URL would be broken.
+					url = fmt.Sprintf("https://discord.com/channels/%s/%s/%s", m.guildId, m.chatId, v.BotMessageId)
+				}
+			}
+		}
+
+		sb.WriteString(fmt.Sprintf("%d. %s — %d (%s)\n", i+1, name, v.ReactionCount, url))
 	}
 }
 

@@ -58,6 +58,8 @@ type Context struct {
 	shouldReplyToMessage bool
 	isReply              bool
 	chatId               string
+	chatUsername         string
+	guildId              string
 	// Image-specific reply fields (used when repost image needs different reply target than video)
 	imageShouldReplyToMessage bool
 	imageReplyToId            string

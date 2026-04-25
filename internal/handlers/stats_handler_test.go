@@ -86,16 +86,23 @@ func TestBuildStatsTextWithData(t *testing.T) {
 		{UserId: "u2", Username: "bob", PostCount: 2},
 	}
 	thumbsUp := []utils.ReactionStat{
-		{BotMessageId: "m1", Username: "alice", SourceUrl: "https://example.com/v1", ReactionCount: 7, PostedAt: time.Now()},
+		{BotMessageId: "m1", Username: "alice", SourceUrl: "https://discord.com/channels/123/999/m1", ReactionCount: 7, PostedAt: time.Now()},
 	}
 	thumbsDown := []utils.ReactionStat{
-		{BotMessageId: "m2", Username: "bob", SourceUrl: "https://example.com/v2", ReactionCount: 3, PostedAt: time.Now()},
+		{BotMessageId: "m2", Username: "bob", SourceUrl: "https://discord.com/channels/123/999/m2", ReactionCount: 3, PostedAt: time.Now()},
 	}
 	reposters := []utils.RepostStat{
 		{UserId: "u2", Username: "bob", RepostCount: 4},
 	}
 
-	result := buildStatsText(posters, nil, thumbsUp, nil, thumbsDown, nil, reposters, nil)
+	ctx := &Context{
+		Service: Discord,
+		chatId:  "999",
+		guildId: "123",
+		action:  Stats,
+	}
+
+	result := buildStatsText(ctx, posters, nil, thumbsUp, nil, thumbsDown, nil, reposters, nil)
 
 	if !strings.Contains(result, "alice") {
 		t.Errorf("expected result to contain 'alice', got: %q", result)
@@ -115,7 +122,8 @@ func TestBuildStatsTextWithData(t *testing.T) {
 }
 
 func TestBuildStatsTextEmpty(t *testing.T) {
-	result := buildStatsText(nil, nil, nil, nil, nil, nil, nil, nil)
+	ctx := &Context{Service: Discord, chatId: "999", action: Stats}
+	result := buildStatsText(ctx, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	if !strings.Contains(result, "No videos posted yet") {
 		t.Errorf("expected empty-state message for posters, got: %q", result)
@@ -128,11 +136,34 @@ func TestBuildStatsTextEmpty(t *testing.T) {
 	}
 }
 
+func TestBuildStatsTextKeepsSourceUrlWhenDeepLinkCannotBeBuilt(t *testing.T) {
+	ctx := &Context{Service: Discord, chatId: "999", action: Stats}
+	thumbsUp := []utils.ReactionStat{{BotMessageId: "m1", Username: "alice", SourceUrl: "https://example.com/original", ReactionCount: 7}}
+
+	result := buildStatsText(ctx, nil, nil, thumbsUp, nil, nil, nil, nil, nil)
+
+	if !strings.Contains(result, "https://example.com/original") {
+		t.Errorf("expected result to keep source url when guild id is missing, got: %q", result)
+	}
+}
+
+func TestBuildStatsTextUsesTelegramChannelLinkOnlyForValidChatIds(t *testing.T) {
+	ctx := &Context{Service: Telegram, chatId: "12345", action: Stats}
+	thumbsUp := []utils.ReactionStat{{BotMessageId: "m1", Username: "alice", SourceUrl: "https://example.com/original", ReactionCount: 7}}
+
+	result := buildStatsText(ctx, nil, nil, thumbsUp, nil, nil, nil, nil, nil)
+
+	if !strings.Contains(result, "https://example.com/original") {
+		t.Errorf("expected result to keep source url for non-channel telegram chat, got: %q", result)
+	}
+}
+
 func TestBuildStatsTextSingularPlural(t *testing.T) {
+	ctx := &Context{Service: Discord, chatId: "999", action: Stats}
 	posters := []utils.PosterStat{{UserId: "u1", Username: "alice", PostCount: 1}}
 	reposters := []utils.RepostStat{{UserId: "u2", Username: "bob", RepostCount: 1}}
 
-	result := buildStatsText(posters, nil, nil, nil, nil, nil, reposters, nil)
+	result := buildStatsText(ctx, posters, nil, nil, nil, nil, nil, reposters, nil)
 
 	if strings.Contains(result, "1 videos") {
 		t.Errorf("expected singular '1 video', got: %q", result)
