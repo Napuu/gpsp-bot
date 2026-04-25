@@ -124,18 +124,20 @@ func appendReactionSection(m *Context, sb *strings.Builder, videos []utils.React
 		if v.BotMessageId != "" {
 			if m.Service == Telegram {
 				if m.chatUsername != "" {
+					// Public Telegram chats can be linked directly by username.
 					url = fmt.Sprintf("https://t.me/%s/%s", m.chatUsername, v.BotMessageId)
 				} else if strings.HasPrefix(m.chatId, "-100") {
+					// Telegram supergroups/channels often only expose the internal -100 ID.
 					url = fmt.Sprintf("https://t.me/c/%s/%s", strings.TrimPrefix(m.chatId, "-100"), v.BotMessageId)
-				} else {
+				} else if strings.HasPrefix(m.chatId, "-") {
+					// Other negative Telegram IDs are not guaranteed to map to a valid public link.
 					url = fmt.Sprintf("https://t.me/c/%s/%s", strings.TrimPrefix(m.chatId, "-"), v.BotMessageId)
 				}
 			} else if m.Service == Discord {
-				guildId := m.guildId
-				if guildId == "" {
-					guildId = "@me"
+				if m.guildId != "" {
+					// Discord channel deep links need a guild ID; without it the URL would be broken.
+					url = fmt.Sprintf("https://discord.com/channels/%s/%s/%s", m.guildId, m.chatId, v.BotMessageId)
 				}
-				url = fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guildId, m.chatId, v.BotMessageId)
 			}
 		}
 

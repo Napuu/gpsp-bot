@@ -136,6 +136,28 @@ func TestBuildStatsTextEmpty(t *testing.T) {
 	}
 }
 
+func TestBuildStatsTextKeepsSourceUrlWhenDeepLinkCannotBeBuilt(t *testing.T) {
+	ctx := &Context{Service: Discord, chatId: "999", action: Stats}
+	thumbsUp := []utils.ReactionStat{{BotMessageId: "m1", Username: "alice", SourceUrl: "https://example.com/original", ReactionCount: 7}}
+
+	result := buildStatsText(ctx, nil, nil, thumbsUp, nil, nil, nil, nil, nil)
+
+	if !strings.Contains(result, "https://example.com/original") {
+		t.Errorf("expected result to keep source url when guild id is missing, got: %q", result)
+	}
+}
+
+func TestBuildStatsTextUsesTelegramChannelLinkOnlyForValidChatIds(t *testing.T) {
+	ctx := &Context{Service: Telegram, chatId: "12345", action: Stats}
+	thumbsUp := []utils.ReactionStat{{BotMessageId: "m1", Username: "alice", SourceUrl: "https://example.com/original", ReactionCount: 7}}
+
+	result := buildStatsText(ctx, nil, nil, thumbsUp, nil, nil, nil, nil, nil)
+
+	if !strings.Contains(result, "https://example.com/original") {
+		t.Errorf("expected result to keep source url for non-channel telegram chat, got: %q", result)
+	}
+}
+
 func TestBuildStatsTextSingularPlural(t *testing.T) {
 	ctx := &Context{Service: Discord, chatId: "999", action: Stats}
 	posters := []utils.PosterStat{{UserId: "u1", Username: "alice", PostCount: 1}}
