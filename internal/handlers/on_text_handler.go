@@ -22,6 +22,7 @@ func (mp *OnTextHandler) Execute(m *Context) {
 			m.id = strconv.Itoa(c.Message().ID)
 			m.isReply = c.Message().IsReply()
 			m.chatId = strconv.Itoa(int(c.Chat().ID))
+			m.chatUsername = c.Chat().Username
 
 			if c.Message().IsReply() {
 				m.replyToId = fmt.Sprint(c.Message().ReplyTo.ID)
@@ -46,6 +47,7 @@ func (mp *OnTextHandler) Execute(m *Context) {
 				m.shouldReplyToMessage = true
 			}
 			m.chatId = message.ChannelID
+			m.guildId = message.GuildID
 
 			if message.Author != nil {
 				m.posterUserId = message.Author.ID
