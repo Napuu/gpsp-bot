@@ -79,9 +79,8 @@ func getTelegramBot(dbPath string) *tele.Bot {
 	})
 
 	pref := tele.Settings{
-		Token:     config.FromEnv().TELEGRAM_TOKEN,
-		ParseMode: tele.ModeHTML,
-		Poller:    poller,
+		Token:  config.FromEnv().TELEGRAM_TOKEN,
+		Poller: poller,
 	}
 
 	b, err := tele.NewBot(pref)

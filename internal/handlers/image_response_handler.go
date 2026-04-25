@@ -35,15 +35,21 @@ func (r *ImageResponseHandler) Execute(m *Context) {
 			if replyToId == "" {
 				replyToId = m.replyToId
 			}
+
+			opts := &tele.SendOptions{}
+			if m.action == Euribor {
+				opts.ParseMode = tele.ModeHTML
+			}
+
 			if shouldReply {
 				message := &tele.Message{
 					Chat: &tele.Chat{ID: int64(utils.S2I(m.chatId))},
 					ID:   utils.S2I(replyToId),
 				}
-				sentMessage, err = m.Telebot.Send(chatId, photo, &tele.SendOptions{ReplyTo: message})
-			} else {
-				sentMessage, err = m.Telebot.Send(chatId, photo)
+				opts.ReplyTo = message
 			}
+
+			sentMessage, err = m.Telebot.Send(chatId, photo, opts)
 			if err != nil {
 				slog.Warn("Failed to send image", "error", err)
 			} else {

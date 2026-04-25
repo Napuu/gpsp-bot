@@ -36,7 +36,14 @@ func (r *TextResponseHandler) Execute(m *Context) {
 
 	switch m.Service {
 	case Telegram:
-		opts := &tele.SendOptions{DisableWebPagePreview: m.disableWebPreview}
+		opts := &tele.SendOptions{
+			DisableWebPagePreview: m.disableWebPreview,
+		}
+		if m.action == Stats {
+			opts.ParseMode = tele.ModeMarkdown
+		} else if m.action == Euribor {
+			opts.ParseMode = tele.ModeHTML
+		}
 		if m.shouldReplyToMessage {
 			chatId := tele.ChatID(utils.S2I(m.chatId))
 			opts.ReplyTo = &tele.Message{
