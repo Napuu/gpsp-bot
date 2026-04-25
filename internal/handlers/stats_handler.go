@@ -141,7 +141,13 @@ func appendReactionSection(m *Context, sb *strings.Builder, videos []utils.React
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("%d. %s — %d (%s)\n", i+1, name, v.ReactionCount, url))
+		var link string
+		if m.Service == Telegram {
+			link = fmt.Sprintf(`<a href="%s">Source</a>`, url)
+		} else {
+			link = fmt.Sprintf("[Source](%s)", url)
+		}
+		sb.WriteString(fmt.Sprintf("%d. %s — %d (%s)\n", i+1, name, v.ReactionCount, link))
 	}
 }
 
