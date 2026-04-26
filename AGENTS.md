@@ -1,15 +1,20 @@
 # Instructions for AI Agents for gpsp-bot
 
 ## Repository Overview
-**gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, DuckDB (requires CGO).
+**gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, SQLite (requires CGO).
 
-**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages. `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM).
+**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`.
 
 **Key Files**:
 - `gpsp-bot.go` - Main entry point
 - `internal/chain/chain.go` - Handler chain setup
 - `internal/config/env.go` - Environment variable parsing  
 - `internal/handlers/context.go` - Action definitions and context
+- `internal/handlers/stats_handler.go` - Stats feature handler
+- `internal/handlers/repost_detection_handler.go` - Repost detection handler
+- `internal/handlers/euribor_handler.go` - Euribor rates handler
+- `internal/handlers/tuplilla_response_handler.go` - Tuplilla (dice+LLM) handler
+- `internal/handlers/video_download_handler.go` - Video download handler
 - `internal/platforms/common.go` - Platform validation
 - `.github/workflows/build.yml` - CI/CD pipeline
 
@@ -31,19 +36,23 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 **Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN)  
 **Container**: `podman build -t gpsp-bot . && podman run -e ENABLED_FEATURES=ping -e TELEGRAM_TOKEN=<token> gpsp-bot telegram`
 
-**Critical**: CGO required (DuckDB). Bot panics if ENABLED_FEATURES empty/invalid or missing platform token. No linter configs exist—use standard Go tools only.
+**Critical**: CGO required (SQLite). Bot panics if ENABLED_FEATURES empty/invalid or missing platform token. No linter configs exist—use standard Go tools only.
 
 ## CI/CD Pipeline
 
-`.github/workflows/build.yml` runs on push/PR to main:
+`.github/workflows/build.yml` runs on push/PR to main, `workflow_dispatch`, or `workflow_call`:
 1. **test** job: Go 1.23.0, runs `go test -v ./...`
-2. **build** job (after test): Matrix for linux-amd64 and linux-arm64, sets CGO_ENABLED=1, installs cross-compiler for arm64, uploads artifacts (30d retention)
+2. **build** job (after test): Matrix for linux-amd64 and linux-arm64, sets CGO_ENABLED=1, installs cross-compiler for arm64, embeds version via `-ldflags`, uploads artifacts (configurable retention days, default 30)
+
+**Inputs**:
+- `version`: Version to embed in the binary
+- `retention_days`: Number of days to retain artifacts (default: 30)
 
 **PR requirement**: Tests must pass.
 
 ## Common Pitfalls
 
-**Build**: DuckDB needs `CGO_ENABLED=1`. arm64 cross-compile needs cross-compiler toolchain. yt-dlp/ffmpeg checked at runtime only.
+**Build**: SQLite needs `CGO_ENABLED=1`. arm64 cross-compile needs cross-compiler toolchain. yt-dlp/ffmpeg checked at runtime only.
 
 **Runtime**: Empty/invalid ENABLED_FEATURES causes panic. Bot creates writable temp dirs: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`). Update yt-dlp regularly (`yt-dlp -U`).
 
@@ -60,7 +69,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 ## Environment Variables (internal/config/env.go)
 
 **Required**: ENABLED_FEATURES (semicolon-separated), TELEGRAM_TOKEN or DISCORD_TOKEN, MISTRAL_TOKEN (for tuplilla)  
-**Optional**: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), PROXY_URLS (SOCKS5 proxies), ALWAYS_RE_ENCODE (false)
+**Optional**: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), REPOST_DB_DIR (`/tmp/repost-db`), DATABASE_FILE, PROXY_URLS (SOCKS5 proxies), ALWAYS_RE_ENCODE (false)
 
 ## Pre-commit Checklist
 
