@@ -310,6 +310,69 @@ func TestGetTopReposters(t *testing.T) {
 	}
 }
 
+func TestUpdateReactionCountPositiveEmojis(t *testing.T) {
+	positiveEmojis := []string{
+		EmojiHeart, EmojiFire, EmojiSmilingFace, EmojiClap,
+		EmojiGrinning, EmojiStarStruck, EmojiParty, EmojiHundred, EmojiCheckMark,
+	}
+
+	for _, emoji := range positiveEmojis {
+		t.Run(emoji, func(t *testing.T) {
+			db := setupTestDB(t)
+
+			entry := VideoStatEntry{
+				Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+				SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+			}
+			if err := RecordVideoPost(db, entry); err != nil {
+				t.Fatalf("RecordVideoPost failed: %v", err)
+			}
+
+			if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", emoji, +1); err != nil {
+				t.Fatalf("UpdateReactionCount(%q) failed: %v", emoji, err)
+			}
+
+			videos, err := GetTopThumbsUp(db, "discord:123", 5)
+			if err != nil {
+				t.Fatalf("GetTopThumbsUp failed: %v", err)
+			}
+			if len(videos) != 1 || videos[0].ReactionCount != 1 {
+				t.Errorf("emoji %q: expected 1 thumbs_up_count, got %v", emoji, videos)
+			}
+		})
+	}
+}
+
+func TestUpdateReactionCountNegativeEmojis(t *testing.T) {
+	negativeEmojis := []string{EmojiPoop, EmojiAngry, EmojiNauseated}
+
+	for _, emoji := range negativeEmojis {
+		t.Run(emoji, func(t *testing.T) {
+			db := setupTestDB(t)
+
+			entry := VideoStatEntry{
+				Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+				SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+			}
+			if err := RecordVideoPost(db, entry); err != nil {
+				t.Fatalf("RecordVideoPost failed: %v", err)
+			}
+
+			if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", emoji, +1); err != nil {
+				t.Fatalf("UpdateReactionCount(%q) failed: %v", emoji, err)
+			}
+
+			videos, err := GetTopThumbsDown(db, "discord:123", 5)
+			if err != nil {
+				t.Fatalf("GetTopThumbsDown failed: %v", err)
+			}
+			if len(videos) != 1 || videos[0].ReactionCount != 1 {
+				t.Errorf("emoji %q: expected 1 thumbs_down_count, got %v", emoji, videos)
+			}
+		})
+	}
+}
+
 func TestQueryTopByReactionColumnRejectsUnknownColumn(t *testing.T) {
 	db := setupTestDB(t)
 	if _, err := queryTopByReactionColumn(db, "discord:123", "id; DROP TABLE video_stats;--", 5); err == nil {
