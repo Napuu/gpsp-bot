@@ -3,13 +3,12 @@ package utils
 import (
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 )
 
-const (
-	EmojiThumbsUp   = "👍"
-	EmojiThumbsDown = "👎"
-)
+var positiveEmojis = []string{"👍", "❤️", "🔥", "🥰", "👏", "😁", "🤩", "🎉", "💯", "✅"}
+var negativeEmojis = []string{"👎", "💩", "😡", "🤮"}
 
 // VideoStatEntry holds the data for one recorded video post.
 type VideoStatEntry struct {
@@ -77,10 +76,10 @@ func RecordVideoPost(db *sql.DB, entry VideoStatEntry) error {
 // emoji are ignored. A delta that matches no row is silently ignored.
 func UpdateReactionCount(db *sql.DB, platform, groupId, botMessageId, emoji string, delta int) error {
 	var column string
-	switch emoji {
-	case EmojiThumbsUp:
+	switch {
+	case slices.Contains(positiveEmojis, emoji):
 		column = "thumbs_up_count"
-	case EmojiThumbsDown:
+	case slices.Contains(negativeEmojis, emoji):
 		column = "thumbs_down_count"
 	default:
 		return nil // unrecognised emoji, nothing to update

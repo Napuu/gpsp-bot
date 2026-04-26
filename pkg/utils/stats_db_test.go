@@ -162,10 +162,10 @@ func TestUpdateReactionCount(t *testing.T) {
 		t.Fatalf("RecordVideoPost failed: %v", err)
 	}
 
-	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, +1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1); err != nil {
 		t.Fatalf("UpdateReactionCount +1 failed: %v", err)
 	}
-	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, +1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1); err != nil {
 		t.Fatalf("UpdateReactionCount +1 failed: %v", err)
 	}
 
@@ -180,7 +180,7 @@ func TestUpdateReactionCount(t *testing.T) {
 		t.Errorf("expected thumbs_up count 2, got %d", videos[0].ReactionCount)
 	}
 
-	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, -1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", -1); err != nil {
 		t.Fatalf("UpdateReactionCount -1 failed: %v", err)
 	}
 
@@ -204,9 +204,9 @@ func TestUpdateReactionCountThumbsDown(t *testing.T) {
 		t.Fatalf("RecordVideoPost failed: %v", err)
 	}
 
-	UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsDown, +1)
-	UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsDown, +1)
-	UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👎", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👎", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1)
 
 	downVideos, err := GetTopThumbsDown(db, "discord:123", 5)
 	if err != nil {
@@ -225,10 +225,74 @@ func TestUpdateReactionCountThumbsDown(t *testing.T) {
 	}
 }
 
+func TestUpdateReactionCountFire(t *testing.T) {
+	db := setupTestDB(t)
+
+	entry := VideoStatEntry{
+		Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+		SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+	}
+	if err := RecordVideoPost(db, entry); err != nil {
+		t.Fatalf("RecordVideoPost failed: %v", err)
+	}
+
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🔥", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🔥", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👎", +1)
+
+	upVideos, err := GetTopThumbsUp(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsUp failed: %v", err)
+	}
+	if len(upVideos) != 1 || upVideos[0].ReactionCount != 2 {
+		t.Errorf("expected 2 thumbs_up_count from 🔥, got %v", upVideos)
+	}
+
+	downVideos, err := GetTopThumbsDown(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsDown failed: %v", err)
+	}
+	if len(downVideos) != 1 || downVideos[0].ReactionCount != 1 {
+		t.Errorf("expected 1 thumbs_down_count, got %v", downVideos)
+	}
+}
+
+func TestUpdateReactionCountNauseated(t *testing.T) {
+	db := setupTestDB(t)
+
+	entry := VideoStatEntry{
+		Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+		SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+	}
+	if err := RecordVideoPost(db, entry); err != nil {
+		t.Fatalf("RecordVideoPost failed: %v", err)
+	}
+
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🤮", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🤮", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1)
+
+	downVideos, err := GetTopThumbsDown(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsDown failed: %v", err)
+	}
+	if len(downVideos) != 1 || downVideos[0].ReactionCount != 2 {
+		t.Errorf("expected 2 thumbs_down_count from 🤮, got %v", downVideos)
+	}
+
+	upVideos, err := GetTopThumbsUp(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsUp failed: %v", err)
+	}
+	if len(upVideos) != 1 || upVideos[0].ReactionCount != 1 {
+		t.Errorf("expected 1 thumbs_up_count, got %v", upVideos)
+	}
+}
+
 func TestUpdateReactionCountUnknownMessage(t *testing.T) {
 	db := setupTestDB(t)
 
-	if err := UpdateReactionCount(db, "discord", "discord:123", "nonexistent-msg", EmojiThumbsUp, +1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "nonexistent-msg", "👍", +1); err != nil {
 		t.Errorf("UpdateReactionCount on unknown message should not error, got: %v", err)
 	}
 }
@@ -247,9 +311,9 @@ func TestGetTopThumbsUpOrdering(t *testing.T) {
 	}
 
 	for range 3 {
-		UpdateReactionCount(db, "discord", "discord:123", "m2", EmojiThumbsUp, +1)
+		UpdateReactionCount(db, "discord", "discord:123", "m2", "👍", +1)
 	}
-	UpdateReactionCount(db, "discord", "discord:123", "m1", EmojiThumbsUp, +1)
+	UpdateReactionCount(db, "discord", "discord:123", "m1", "👍", +1)
 
 	videos, err := GetTopThumbsUp(db, "discord:123", 5)
 	if err != nil {
@@ -307,6 +371,62 @@ func TestGetTopReposters(t *testing.T) {
 	}
 	if reposters[0].Username != "alice" || reposters[0].RepostCount != 2 {
 		t.Errorf("expected alice with 2 reposts first, got %q with %d", reposters[0].Username, reposters[0].RepostCount)
+	}
+}
+
+func TestUpdateReactionCountPositiveEmojis(t *testing.T) {
+	for _, emoji := range positiveEmojis {
+		t.Run(emoji, func(t *testing.T) {
+			db := setupTestDB(t)
+
+			entry := VideoStatEntry{
+				Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+				SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+			}
+			if err := RecordVideoPost(db, entry); err != nil {
+				t.Fatalf("RecordVideoPost failed: %v", err)
+			}
+
+			if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", emoji, +1); err != nil {
+				t.Fatalf("UpdateReactionCount(%q) failed: %v", emoji, err)
+			}
+
+			videos, err := GetTopThumbsUp(db, "discord:123", 5)
+			if err != nil {
+				t.Fatalf("GetTopThumbsUp failed: %v", err)
+			}
+			if len(videos) != 1 || videos[0].ReactionCount != 1 {
+				t.Errorf("emoji %q: expected 1 thumbs_up_count, got %v", emoji, videos)
+			}
+		})
+	}
+}
+
+func TestUpdateReactionCountNegativeEmojis(t *testing.T) {
+	for _, emoji := range negativeEmojis {
+		t.Run(emoji, func(t *testing.T) {
+			db := setupTestDB(t)
+
+			entry := VideoStatEntry{
+				Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+				SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+			}
+			if err := RecordVideoPost(db, entry); err != nil {
+				t.Fatalf("RecordVideoPost failed: %v", err)
+			}
+
+			if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", emoji, +1); err != nil {
+				t.Fatalf("UpdateReactionCount(%q) failed: %v", emoji, err)
+			}
+
+			videos, err := GetTopThumbsDown(db, "discord:123", 5)
+			if err != nil {
+				t.Fatalf("GetTopThumbsDown failed: %v", err)
+			}
+			if len(videos) != 1 || videos[0].ReactionCount != 1 {
+				t.Errorf("emoji %q: expected 1 thumbs_down_count, got %v", emoji, videos)
+			}
+		})
 	}
 }
 
