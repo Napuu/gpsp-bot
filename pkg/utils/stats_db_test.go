@@ -225,6 +225,70 @@ func TestUpdateReactionCountThumbsDown(t *testing.T) {
 	}
 }
 
+func TestUpdateReactionCountFire(t *testing.T) {
+	db := setupTestDB(t)
+
+	entry := VideoStatEntry{
+		Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+		SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+	}
+	if err := RecordVideoPost(db, entry); err != nil {
+		t.Fatalf("RecordVideoPost failed: %v", err)
+	}
+
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🔥", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🔥", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👎", +1)
+
+	upVideos, err := GetTopThumbsUp(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsUp failed: %v", err)
+	}
+	if len(upVideos) != 1 || upVideos[0].ReactionCount != 2 {
+		t.Errorf("expected 2 thumbs_up_count from 🔥, got %v", upVideos)
+	}
+
+	downVideos, err := GetTopThumbsDown(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsDown failed: %v", err)
+	}
+	if len(downVideos) != 1 || downVideos[0].ReactionCount != 1 {
+		t.Errorf("expected 1 thumbs_down_count, got %v", downVideos)
+	}
+}
+
+func TestUpdateReactionCountNauseated(t *testing.T) {
+	db := setupTestDB(t)
+
+	entry := VideoStatEntry{
+		Platform: "discord", GroupId: "discord:123", UserId: "u1", Username: "alice",
+		SourceUrl: "https://example.com/1", BotMessageId: "msg1", PostedAt: time.Now(),
+	}
+	if err := RecordVideoPost(db, entry); err != nil {
+		t.Fatalf("RecordVideoPost failed: %v", err)
+	}
+
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🤮", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "🤮", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1)
+
+	downVideos, err := GetTopThumbsDown(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsDown failed: %v", err)
+	}
+	if len(downVideos) != 1 || downVideos[0].ReactionCount != 2 {
+		t.Errorf("expected 2 thumbs_down_count from 🤮, got %v", downVideos)
+	}
+
+	upVideos, err := GetTopThumbsUp(db, "discord:123", 5)
+	if err != nil {
+		t.Fatalf("GetTopThumbsUp failed: %v", err)
+	}
+	if len(upVideos) != 1 || upVideos[0].ReactionCount != 1 {
+		t.Errorf("expected 1 thumbs_up_count, got %v", upVideos)
+	}
+}
+
 func TestUpdateReactionCountUnknownMessage(t *testing.T) {
 	db := setupTestDB(t)
 
