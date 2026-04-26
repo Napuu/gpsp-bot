@@ -162,10 +162,10 @@ func TestUpdateReactionCount(t *testing.T) {
 		t.Fatalf("RecordVideoPost failed: %v", err)
 	}
 
-	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, +1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1); err != nil {
 		t.Fatalf("UpdateReactionCount +1 failed: %v", err)
 	}
-	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, +1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1); err != nil {
 		t.Fatalf("UpdateReactionCount +1 failed: %v", err)
 	}
 
@@ -180,7 +180,7 @@ func TestUpdateReactionCount(t *testing.T) {
 		t.Errorf("expected thumbs_up count 2, got %d", videos[0].ReactionCount)
 	}
 
-	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, -1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", -1); err != nil {
 		t.Fatalf("UpdateReactionCount -1 failed: %v", err)
 	}
 
@@ -204,9 +204,9 @@ func TestUpdateReactionCountThumbsDown(t *testing.T) {
 		t.Fatalf("RecordVideoPost failed: %v", err)
 	}
 
-	UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsDown, +1)
-	UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsDown, +1)
-	UpdateReactionCount(db, "discord", "discord:123", "msg1", EmojiThumbsUp, +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👎", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👎", +1)
+	UpdateReactionCount(db, "discord", "discord:123", "msg1", "👍", +1)
 
 	downVideos, err := GetTopThumbsDown(db, "discord:123", 5)
 	if err != nil {
@@ -228,7 +228,7 @@ func TestUpdateReactionCountThumbsDown(t *testing.T) {
 func TestUpdateReactionCountUnknownMessage(t *testing.T) {
 	db := setupTestDB(t)
 
-	if err := UpdateReactionCount(db, "discord", "discord:123", "nonexistent-msg", EmojiThumbsUp, +1); err != nil {
+	if err := UpdateReactionCount(db, "discord", "discord:123", "nonexistent-msg", "👍", +1); err != nil {
 		t.Errorf("UpdateReactionCount on unknown message should not error, got: %v", err)
 	}
 }
@@ -247,9 +247,9 @@ func TestGetTopThumbsUpOrdering(t *testing.T) {
 	}
 
 	for range 3 {
-		UpdateReactionCount(db, "discord", "discord:123", "m2", EmojiThumbsUp, +1)
+		UpdateReactionCount(db, "discord", "discord:123", "m2", "👍", +1)
 	}
-	UpdateReactionCount(db, "discord", "discord:123", "m1", EmojiThumbsUp, +1)
+	UpdateReactionCount(db, "discord", "discord:123", "m1", "👍", +1)
 
 	videos, err := GetTopThumbsUp(db, "discord:123", 5)
 	if err != nil {
@@ -312,8 +312,7 @@ func TestGetTopReposters(t *testing.T) {
 
 func TestUpdateReactionCountPositiveEmojis(t *testing.T) {
 	positiveEmojis := []string{
-		EmojiHeart, EmojiFire, EmojiSmilingFace, EmojiClap,
-		EmojiGrinning, EmojiStarStruck, EmojiParty, EmojiHundred, EmojiCheckMark,
+		"❤️", "🔥", "🥰", "👏", "😁", "🤩", "🎉", "💯", "✅",
 	}
 
 	for _, emoji := range positiveEmojis {
@@ -344,7 +343,7 @@ func TestUpdateReactionCountPositiveEmojis(t *testing.T) {
 }
 
 func TestUpdateReactionCountNegativeEmojis(t *testing.T) {
-	negativeEmojis := []string{EmojiPoop, EmojiAngry, EmojiNauseated}
+	negativeEmojis := []string{"💩", "😡", "🤮"}
 
 	for _, emoji := range negativeEmojis {
 		t.Run(emoji, func(t *testing.T) {

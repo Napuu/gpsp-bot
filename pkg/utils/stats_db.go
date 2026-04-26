@@ -6,27 +6,6 @@ import (
 	"time"
 )
 
-const (
-	EmojiThumbsUp   = "👍"
-	EmojiThumbsDown = "👎"
-
-	// Additional positive-sentiment emoji that count towards thumbs_up_count.
-	EmojiHeart       = "❤️"
-	EmojiFire        = "🔥"
-	EmojiSmilingFace = "🥰"
-	EmojiClap        = "👏"
-	EmojiGrinning    = "😁"
-	EmojiStarStruck  = "🤩"
-	EmojiParty       = "🎉"
-	EmojiHundred     = "💯"
-	EmojiCheckMark   = "✅"
-
-	// Additional negative-sentiment emoji that count towards thumbs_down_count.
-	EmojiPoop      = "💩"
-	EmojiAngry     = "😡"
-	EmojiNauseated = "🤮"
-)
-
 // VideoStatEntry holds the data for one recorded video post.
 type VideoStatEntry struct {
 	Platform     string
@@ -94,10 +73,9 @@ func RecordVideoPost(db *sql.DB, entry VideoStatEntry) error {
 func UpdateReactionCount(db *sql.DB, platform, groupId, botMessageId, emoji string, delta int) error {
 	var column string
 	switch emoji {
-	case EmojiThumbsUp, EmojiHeart, EmojiFire, EmojiSmilingFace, EmojiClap,
-		EmojiGrinning, EmojiStarStruck, EmojiParty, EmojiHundred, EmojiCheckMark:
+	case "👍", "❤️", "🔥", "🥰", "👏", "😁", "🤩", "🎉", "💯", "✅":
 		column = "thumbs_up_count"
-	case EmojiThumbsDown, EmojiPoop, EmojiAngry, EmojiNauseated:
+	case "👎", "💩", "😡", "🤮":
 		column = "thumbs_down_count"
 	default:
 		return nil // unrecognised emoji, nothing to update
