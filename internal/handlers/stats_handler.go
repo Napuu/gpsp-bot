@@ -119,7 +119,7 @@ func appendReactionSection(m *Context, sb *strings.Builder, videos []utils.React
 		if name == "" {
 			name = "unknown"
 		}
-		
+
 		url := v.SourceUrl
 		if v.BotMessageId != "" {
 			if m.Service == Telegram {

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	cleanupMaxAge = 30 * 24 * time.Hour // 30 days
+	cleanupMaxAge = 90 * 24 * time.Hour // 90 days
 )
 
 type EndOfChainHandler struct{}
