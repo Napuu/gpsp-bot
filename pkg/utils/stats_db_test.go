@@ -311,10 +311,6 @@ func TestGetTopReposters(t *testing.T) {
 }
 
 func TestUpdateReactionCountPositiveEmojis(t *testing.T) {
-	positiveEmojis := []string{
-		"❤️", "🔥", "🥰", "👏", "😁", "🤩", "🎉", "💯", "✅",
-	}
-
 	for _, emoji := range positiveEmojis {
 		t.Run(emoji, func(t *testing.T) {
 			db := setupTestDB(t)
@@ -343,8 +339,6 @@ func TestUpdateReactionCountPositiveEmojis(t *testing.T) {
 }
 
 func TestUpdateReactionCountNegativeEmojis(t *testing.T) {
-	negativeEmojis := []string{"💩", "😡", "🤮"}
-
 	for _, emoji := range negativeEmojis {
 		t.Run(emoji, func(t *testing.T) {
 			db := setupTestDB(t)
