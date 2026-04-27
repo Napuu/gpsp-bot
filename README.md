@@ -4,7 +4,25 @@ Add useful and not so useful commands to group chats. Reusing business logic so 
 
 ## Available commands
 
-Commands must be explicitely enabled via an environment variable. E.g., `ENABLED_FEATURES=ping;dl`.
+Commands must be explicitly enabled via an environment variable. E.g., `ENABLED_FEATURES=ping;dl`.
+
+### /doctor
+
+Run diagnostics to validate configuration, external services, and dependencies. Useful for troubleshooting:
+```
+./gpsp-bot doctor
+```
+
+Example output:
+```
+=== Enabled Features ===
+[✓] ENABLED_FEATURES: Valid (ping, dl, euribor)
+
+=== External Services ===
+[✓] Telegram Token (TELEGRAM_TOKEN): Valid (Bot: @gpsp_bot, Token: ****ghij) # Handles Telegram bot interactions
+[✓] Discord Token (DISCORD_TOKEN): Valid (Bot: gpsp_bot, Token: ****7890)   # Handles Discord bot interactions
+[✓] Mistral Token (MISTRAL_TOKEN): Valid (Token: ****7890)                  # Required for tuplilla (LLM) feature
+```
 
 ### /dl \<link>
 

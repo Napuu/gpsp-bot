@@ -9,6 +9,7 @@
 - `gpsp-bot.go` - Main entry point
 - `internal/chain/chain.go` - Handler chain setup
 - `internal/config/env.go` - Environment variable parsing  
+- `internal/doctor/doctor.go` - Doctor command for diagnostics
 - `internal/handlers/context.go` - Action definitions and context
 - `internal/handlers/stats_handler.go` - Stats feature handler
 - `internal/handlers/repost_detection_handler.go` - Repost detection handler
@@ -33,7 +34,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 **Vet**: `go vet ./...`  
 **Dependencies**: `go mod download` or `go mod tidy`
 
-**Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN)  
+**Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN). Use `./gpsp-bot doctor` to run diagnostics and validate configuration.  
 **Container**: `podman build -t gpsp-bot . && podman run -e ENABLED_FEATURES=ping -e TELEGRAM_TOKEN=<token> gpsp-bot telegram`
 
 **Critical**: CGO required (SQLite). Bot panics if ENABLED_FEATURES empty/invalid or missing platform token. No linter configs exist—use standard Go tools only.
