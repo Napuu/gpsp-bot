@@ -50,47 +50,21 @@ func ParseCutArgs(msg string) (float64, float64, error) {
 
 	requestPayload := map[string]any{
 		"response_format": map[string]any{
-			"type": "json_schema",
-			"json_schema": map[string]any{
-				"schema": map[string]any{
-					"title": "VideoCutInstruction",
-					"type":  "object",
-					"properties": map[string]any{
-						"start_minutes": map[string]any{
-							"title": "Start Minutes",
-							"type":  "number",
-						},
-						"start_seconds": map[string]any{
-							"title": "Start Seconds",
-							"type":  "number",
-						},
-						"duration_minutes": map[string]any{
-							"title": "Duration Minutes",
-							"type":  "number",
-						},
-						"duration_seconds": map[string]any{
-							"title": "Duration Seconds",
-							"type":  "number",
-						},
-					},
-					"required":             []string{"start_minutes", "start_seconds"},
-					"additionalProperties": false,
-				},
-				"name":   "videoCutInstruction",
-				"strict": true,
-			},
+			"type": "json_object",
 		},
 		"messages": []map[string]string{
 			{
 				"role": "system",
-				"content": `Cut video with subsecond level accuracy. Instructions are likely in English or Finnish.
+				"content": `You must return a JSON object containing the cut times.
+				Cut video with subsecond level accuracy. Instructions are likely in English or Finnish.
+				Provide a JSON with properties: start_minutes, start_seconds, duration_minutes, duration_seconds.
 				Some examples:
-				* 1m33s- => start_minutes = 1, start_seconds = 60
-				* 20s-45s- => start_minutes = 0, start_seconds = 20, duration_minutes = 0, duration_seconds = 25
-				* vikat 2m34s => start_minutes = -2, start_seconds = -34
-				* ekat 6m8s => start_minutes = 0, start_seconds = 0, duration_minutes = 6, duration_seconds = 8
-				* 1m3.5s- => start_minutes = 1, start_seconds = 3.5
-				* last 15s => start_minutes = 0, start_seconds = -15
+				* 1m33s- => {"start_minutes": 1, "start_seconds": 33, "duration_minutes": 0, "duration_seconds": 0}
+				* 20s-45s- => {"start_minutes": 0, "start_seconds": 20, "duration_minutes": 0, "duration_seconds": 25}
+				* vikat 2m34s => {"start_minutes": -2, "start_seconds": -34, "duration_minutes": 0, "duration_seconds": 0}
+				* ekat 6m8s => {"start_minutes": 0, "start_seconds": 0, "duration_minutes": 6, "duration_seconds": 8}
+				* 1m3.5s- => {"start_minutes": 1, "start_seconds": 3.5, "duration_minutes": 0, "duration_seconds": 0}
+				* last 15s => {"start_minutes": 0, "start_seconds": -15, "duration_minutes": 0, "duration_seconds": 0}
 				`,
 			},
 			{"role": "user", "content": msg},
@@ -106,6 +80,10 @@ func ParseCutArgs(msg string) (float64, float64, error) {
 
 	if err != nil {
 		return 0, 0, err
+	}
+
+	if resp.IsError() {
+		return 0, 0, fmt.Errorf("Mistral API error: %s", resp.String())
 	}
 
 	var response Response
