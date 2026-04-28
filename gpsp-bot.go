@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,10 +12,16 @@ import (
 	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/internal/doctor"
 	"github.com/napuu/gpsp-bot/internal/handlers"
+	"github.com/napuu/gpsp-bot/internal/version"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
 
 func main() {
+	if len(os.Args) >= 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		fmt.Println(version.GetHumanReadableVersion())
+		return
+	}
+
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: gpsp-bot <platform|doctor> (telegram, discord, or doctor)")
 	}
