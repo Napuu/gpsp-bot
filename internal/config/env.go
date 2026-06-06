@@ -56,3 +56,14 @@ func ProxyUrls() []string {
 func EnabledFeatures() []string {
 	return strings.Split(FromEnv().ENABLED_FEATURES, ";")
 }
+
+// backgroundFeatures are ENABLED_FEATURES values that run in the background and are not user commands.
+var backgroundFeatures = map[string]struct{}{
+	"daymeme": {},
+}
+
+// IsBackgroundFeature reports whether a feature flag is background-only (not a slash command).
+func IsBackgroundFeature(feature string) bool {
+	_, ok := backgroundFeatures[feature]
+	return ok
+}

@@ -16,6 +16,9 @@ func actionExists(action string) bool {
 
 func VerifyEnabledCommands() {
 	for _, action := range config.EnabledFeatures() {
+		if action == "" || config.IsBackgroundFeature(action) {
+			continue
+		}
 		if actionExists(action) {
 			slog.Info(fmt.Sprintf("Enabled action %s: '%s'!", action, handlers.ActionMap[handlers.Action(action)]))
 		} else {

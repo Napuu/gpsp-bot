@@ -53,6 +53,16 @@ no dubz: Ei tuplia 😿, ei tehdä asiaa X
 ```
 `MISTRAL_TOKEN` required for this one because we try respond with grammatically correct negation. Sometimes works, sometimes not.
 
+### Day meme easter egg (`daymeme`)
+
+Not a user command. When enabled via `ENABLED_FEATURES=daymeme`, the bot may occasionally post a short day meme video to active group chats. Eligibility: at least 3 members, a message in the last 24 hours, and at least 7 bot video downloads in the last 7 days. Scheduling uses a random 14–28 day window; posting is attempted during **03:00–11:59 UTC** only. The overlay date is the **UTC calendar date**.
+
+Generate a video manually for testing:
+```
+./gpsp-bot day-video /tmp/out.mp4 2026-06-06
+```
+Dates are interpreted as UTC. Temp files are stored under `{YTDLP_TMP_DIR}/day-video`.
+
 
 ## Sample configs
 
@@ -64,7 +74,7 @@ PROXY_URLS="localhost:1235;localhost:1234" \
   DATABASE_FILE=/opt/euribor.db \
   MISTRAL_TOKEN=<mistral token> \
   TELEGRAM_TOKEN=<telegram token> \
-  ENABLED_FEATURES="ping;dl;euribor;tuplilla" \
+  ENABLED_FEATURES="ping;dl;euribor;tuplilla;daymeme" \
   go run gpsp-bot.go telegram
 ```
 

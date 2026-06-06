@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/config"
+	"github.com/napuu/gpsp-bot/internal/dayvideo"
 	"github.com/napuu/gpsp-bot/internal/doctor"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"github.com/napuu/gpsp-bot/internal/version"
@@ -69,14 +73,15 @@ func main() {
 		}
 	}
 
-	// Initialize the chain of responsibility
-	chain := chain.NewChainOfResponsibility()
-
-	// Initialize the platform
-	dbPath := filepath.Join("/tmp/repost-db", "repost_fingerprints.duckdb")
+	cfg := config.FromEnv()
+	dbPath := filepath.Join(cfg.REPOST_DB_DIR, "repost_fingerprints.duckdb")
 	if err := utils.InitRepostDB(dbPath); err != nil {
 		log.Fatalf("Failed to initialize stats DB: %v", err)
 	}
+
+	var dayVideoScheduler *dayvideo.Scheduler
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	switch platform {
 	case "telegram":
@@ -87,49 +92,59 @@ func main() {
 			log.Fatalf("Failed to initialize Telegram bot: %v", err)
 		}
 
-		bot.Handle(tele.OnText, wrapTeleHandler(bot, chain))
+		dayVideoScheduler = dayvideo.NewScheduler(dbPath, bot, nil)
+		handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+		dayVideoScheduler.Start(ctx)
+
+		bot.Handle(tele.OnText, wrapTeleHandler(bot, handlerChain))
 		log.Println("Starting Telegram bot...")
-		bot.Start()
+		go bot.Start()
+		<-ctx.Done()
+		bot.Stop()
 	case "discord":
 		dg, err := discordgo.New("Bot " + token)
 		if err != nil {
 			log.Fatalf("Failed to initialize Discord session: %v", err)
 		}
 
-		dg.AddHandler(wrapDiscoHandler(chain))
+		dayVideoScheduler = dayvideo.NewScheduler(dbPath, nil, dg)
+		handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+		dayVideoScheduler.Start(ctx)
+
+		dg.AddHandler(wrapDiscoHandler(handlerChain))
 		if err := dg.Open(); err != nil {
 			log.Fatalf("Failed to start Discord bot: %v", err)
 		}
 		defer dg.Close()
 		log.Println("Starting Discord bot...")
-		<-make(chan struct{})
+		<-ctx.Done()
 	}
 }
 
 // wrapTeleHandler wraps the chain for Telegram.
-func wrapTeleHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Context) error {
+func wrapTeleHandler(bot *tele.Bot, handlerChain *chain.HandlerChain) func(c tele.Context) error {
 	return func(c tele.Context) error {
-		chain.Process(&handlers.Context{TelebotContext: c, Telebot: bot, Service: handlers.Telegram})
+		handlerChain.Process(&handlers.Context{TelebotContext: c, Telebot: bot, Service: handlers.Telegram})
 		return nil
 	}
 }
 
 // wrapDiscoHandler wraps the chain for Discord.
-func wrapDiscoHandler(chain *chain.HandlerChain) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+func wrapDiscoHandler(handlerChain *chain.HandlerChain) func(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if m.Author.ID == s.State.User.ID {
 			return
 		}
-		chain.Process(&handlers.Context{DiscordSession: s, DiscordMessage: m, Service: handlers.Discord})
+		handlerChain.Process(&handlers.Context{DiscordSession: s, DiscordMessage: m, Service: handlers.Discord})
 	}
 }
 
 func parseDayVideoArgs(args []string) (outputPath string, when time.Time, err error) {
-	outputPath = "/tmp/day-video-output.mp4"
-	when = time.Now()
+	outputPath = filepath.Join(utils.DayVideoTmpDir(), "output.mp4")
+	when = time.Now().UTC()
 
 	for _, arg := range args {
-		parsed, parseErr := time.ParseInLocation("2006-01-02", arg, time.Local)
+		parsed, parseErr := time.ParseInLocation("2006-01-02", arg, time.UTC)
 		if parseErr == nil {
 			when = parsed
 			continue

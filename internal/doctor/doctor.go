@@ -315,7 +315,7 @@ func checkDirectory(name, defaultPath, errorSymbol, successSymbol string) string
 func checkEnabledFeatures(warningSymbol, errorSymbol, successSymbol string) string {
 	enabledFeatures := config.EnabledFeatures()
 	if len(enabledFeatures) == 0 || (len(enabledFeatures) == 1 && enabledFeatures[0] == "") {
-		return fmt.Sprintf("%s ENABLED_FEATURES: Not set # Valid features: ping, dl, euribor, tuplilla, stats, version", errorSymbol)
+		return fmt.Sprintf("%s ENABLED_FEATURES: Not set # Valid features: ping, dl, euribor, tuplilla, stats, version, daymeme", errorSymbol)
 	}
 
 	validFeatures := map[string]bool{
@@ -325,6 +325,7 @@ func checkEnabledFeatures(warningSymbol, errorSymbol, successSymbol string) stri
 		"tuplilla": true,
 		"stats":    true,
 		"version":  true,
+		"daymeme":  true,
 	}
 
 	invalidFeatures := []string{}
@@ -335,7 +336,7 @@ func checkEnabledFeatures(warningSymbol, errorSymbol, successSymbol string) stri
 	}
 
 	if len(invalidFeatures) > 0 {
-		return fmt.Sprintf("%s ENABLED_FEATURES: Unknown feature(s) %q # Valid features: ping, dl, euribor, tuplilla, stats, version", warningSymbol, strings.Join(invalidFeatures, ", "))
+		return fmt.Sprintf("%s ENABLED_FEATURES: Unknown feature(s) %q # Valid features: ping, dl, euribor, tuplilla, stats, version, daymeme", warningSymbol, strings.Join(invalidFeatures, ", "))
 	}
 
 	return fmt.Sprintf("%s ENABLED_FEATURES: Valid (%s)", successSymbol, strings.Join(enabledFeatures, ", "))

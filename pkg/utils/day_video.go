@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -9,17 +10,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/napuu/gpsp-bot/assets"
+	"github.com/napuu/gpsp-bot/internal/config"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 )
 
 const (
-	dayVideoTmpDir           = "/tmp/day-video"
 	dayOverlayFontSize       = 62
 	dayOverlayLineGap        = 12
 	dayOverlayPadding        = 24
@@ -28,6 +30,11 @@ const (
 	dayOverlayYOffsetPx      = 250
 	dayTemplateAssetName     = "day_template.mp4"
 )
+
+// DayVideoTmpDir returns the directory for day meme temp files.
+func DayVideoTmpDir() string {
+	return filepath.Join(config.FromEnv().YTDLP_TMP_DIR, "day-video")
+}
 
 func ordinalSuffix(day int) string {
 	if day >= 11 && day <= 13 {
@@ -158,8 +165,12 @@ func overlayDayText(templatePath, textPath, outputPath string) error {
 
 	cmd := exec.Command("ffmpeg", args...)
 	cmd.Stdout = nil
-	cmd.Stderr = nil
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if msg := strings.TrimSpace(stderr.String()); msg != "" {
+			return fmt.Errorf("ffmpeg overlay: %w: %s", err, msg)
+		}
 		return fmt.Errorf("ffmpeg overlay: %w", err)
 	}
 	return nil
@@ -167,7 +178,7 @@ func overlayDayText(templatePath, textPath, outputPath string) error {
 
 // GenerateDayVideo creates a day meme video for the given time.
 func GenerateDayVideo(outputPath string, t time.Time) error {
-	tmpDir := filepath.Join(dayVideoTmpDir, uuid.New().String())
+	tmpDir := filepath.Join(DayVideoTmpDir(), uuid.New().String())
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		return fmt.Errorf("create temp dir: %w", err)
 	}
@@ -190,7 +201,7 @@ func GenerateDayVideo(outputPath string, t time.Time) error {
 	return nil
 }
 
-// GenerateTodayVideo creates a day meme video for the current local time.
+// GenerateTodayVideo creates a day meme video for the current UTC time.
 func GenerateTodayVideo(outputPath string) error {
-	return GenerateDayVideo(outputPath, time.Now())
+	return GenerateDayVideo(outputPath, time.Now().UTC())
 }

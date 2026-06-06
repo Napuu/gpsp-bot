@@ -110,6 +110,15 @@ func imageHasOpaquePixels(img image.Image) bool {
 	return false
 }
 
+func TestDayVideoTmpDir(t *testing.T) {
+	t.Setenv("YTDLP_TMP_DIR", "/tmp/custom-ytdlp")
+	got := DayVideoTmpDir()
+	want := filepath.Join("/tmp/custom-ytdlp", "day-video")
+	if got != want {
+		t.Fatalf("DayVideoTmpDir() = %q, want %q", got, want)
+	}
+}
+
 func TestGenerateDayVideo(t *testing.T) {
 	if !isCommandAvailable("ffmpeg") {
 		t.Skip("ffmpeg not available, skipping test")

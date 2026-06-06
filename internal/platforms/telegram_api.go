@@ -1,13 +1,18 @@
 package platforms
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/config"
+	"github.com/napuu/gpsp-bot/internal/dayvideo"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"github.com/napuu/gpsp-bot/internal/telereactions"
 	"github.com/napuu/gpsp-bot/pkg/utils"
@@ -25,6 +30,9 @@ func wrapTeleHandler(bot *tele.Bot, chain *chain.HandlerChain) func(c tele.Conte
 func TelebotCompatibleVisibleCommands() []tele.Command {
 	commands := make([]tele.Command, 0, len(config.EnabledFeatures()))
 	for _, action := range config.EnabledFeatures() {
+		if action == "" || config.IsBackgroundFeature(action) {
+			continue
+		}
 		if handlers.Action(action) == handlers.Ping || handlers.Action(action) == handlers.Version {
 			continue
 		}
@@ -44,15 +52,21 @@ func RunTelegramBot() {
 		return
 	}
 	bot := getTelegramBot(dbPath)
-	chain := chain.NewChainOfResponsibility()
+	dayVideoScheduler := dayvideo.NewScheduler(dbPath, bot, nil)
+	handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	dayVideoScheduler.Start(ctx)
 
 	if err := bot.SetCommands(TelebotCompatibleVisibleCommands()); err != nil {
 		slog.Error(err.Error())
 	}
 
-	bot.Handle(tele.OnText, wrapTeleHandler(bot, chain))
+	bot.Handle(tele.OnText, wrapTeleHandler(bot, handlerChain))
 
 	go bot.Start()
+	<-ctx.Done()
+	bot.Stop()
 }
 
 func getTelegramBot(dbPath string) *tele.Bot {

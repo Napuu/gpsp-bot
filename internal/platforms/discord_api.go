@@ -1,12 +1,17 @@
 package platforms
 
 import (
+	"context"
 	"log/slog"
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/config"
+	"github.com/napuu/gpsp-bot/internal/dayvideo"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 )
@@ -36,14 +41,18 @@ func RunDiscordBot() {
 		return
 	}
 
-	// Create the chain of responsibility
-	chain := chain.NewChainOfResponsibility()
-
 	dbPath := filepath.Join(cfg.REPOST_DB_DIR, "repost_fingerprints.duckdb")
 	if err := utils.InitRepostDB(dbPath); err != nil {
 		slog.Error("Failed to initialize stats DB", "error", err)
 		return
 	}
+
+	dayVideoScheduler := dayvideo.NewScheduler(dbPath, nil, dg)
+	handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	dayVideoScheduler.Start(ctx)
+
 	statsDB, err := utils.OpenStatsDB(dbPath)
 	if err != nil {
 		slog.Error("Failed to open stats DB for reaction tracking", "error", err)
@@ -51,7 +60,7 @@ func RunDiscordBot() {
 	}
 
 	// Add a handler for messages
-	dg.AddHandler(wrapDiscoHandler(chain))
+	dg.AddHandler(wrapDiscoHandler(handlerChain))
 
 	// Add reaction tracking handlers
 	dg.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
@@ -82,4 +91,6 @@ func RunDiscordBot() {
 		slog.Error("Error opening Discord connection", "error", err)
 		return
 	}
+	defer dg.Close()
+	<-ctx.Done()
 }

@@ -64,6 +64,19 @@ func InitRepostDB(dbPath string) error {
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_down_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE;
 		ALTER TABLE fingerprints ADD COLUMN IF NOT EXISTS ocr_text_hash TEXT;
+		CREATE TABLE IF NOT EXISTS group_activity (
+			group_id TEXT PRIMARY KEY,
+			platform TEXT NOT NULL,
+			last_message_at TIMESTAMP NOT NULL,
+			member_count INT,
+			member_count_updated_at TIMESTAMP
+		);
+		CREATE TABLE IF NOT EXISTS day_video_state (
+			group_id TEXT PRIMARY KEY,
+			last_posted_at TIMESTAMP,
+			eligible_from TIMESTAMP NOT NULL,
+			due_by TIMESTAMP NOT NULL
+		);
 	`
 
 	_, err = conn.Exec(schema)
