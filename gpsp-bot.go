@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
-	tele "gopkg.in/telebot.v4"
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/config"
@@ -14,6 +14,7 @@ import (
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"github.com/napuu/gpsp-bot/internal/version"
 	"github.com/napuu/gpsp-bot/pkg/utils"
+	tele "gopkg.in/telebot.v4"
 )
 
 func main() {
@@ -23,12 +24,24 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: gpsp-bot <platform|doctor> (telegram, discord, or doctor)")
+		log.Fatal("Usage: gpsp-bot <platform|doctor|day-video> (telegram, discord, doctor, or day-video)")
 	}
 
 	command := os.Args[1]
 	if command == "doctor" {
 		doctor.Run()
+		return
+	}
+
+	if command == "day-video" {
+		outputPath, when, err := parseDayVideoArgs(os.Args[2:])
+		if err != nil {
+			log.Fatalf("Invalid day-video arguments: %v", err)
+		}
+		if err := utils.GenerateDayVideo(outputPath, when); err != nil {
+			log.Fatalf("Failed to generate day video: %v", err)
+		}
+		fmt.Println(outputPath)
 		return
 	}
 
@@ -109,4 +122,20 @@ func wrapDiscoHandler(chain *chain.HandlerChain) func(s *discordgo.Session, m *d
 		}
 		chain.Process(&handlers.Context{DiscordSession: s, DiscordMessage: m, Service: handlers.Discord})
 	}
+}
+
+func parseDayVideoArgs(args []string) (outputPath string, when time.Time, err error) {
+	outputPath = "/tmp/day-video-output.mp4"
+	when = time.Now()
+
+	for _, arg := range args {
+		parsed, parseErr := time.ParseInLocation("2006-01-02", arg, time.Local)
+		if parseErr == nil {
+			when = parsed
+			continue
+		}
+		outputPath = arg
+	}
+
+	return outputPath, when, nil
 }

@@ -12,6 +12,7 @@ require (
 	github.com/marcboeker/go-duckdb v1.8.3
 	github.com/playwright-community/playwright-go v0.4802.0
 	golang.org/x/exp v0.0.0-20250215185904-eff6e970281f
+	golang.org/x/image v0.25.0
 	gopkg.in/telebot.v4 v4.0.0-beta.4
 )
 
@@ -44,10 +45,10 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gonum.org/v1/gonum v0.16.0 // indirect

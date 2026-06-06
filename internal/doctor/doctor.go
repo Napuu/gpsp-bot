@@ -131,8 +131,8 @@ func checkTelegramToken(errorSymbol, successSymbol string) string {
 	}
 
 	sanitizedToken := "****" + token[len(token)-4:]
-return fmt.Sprintf("%s Telegram Token (TELEGRAM_TOKEN): Valid (Bot: @%s, Token: %s) # Handles Telegram bot interactions",
-	successSymbol, result.Result.Username, sanitizedToken)
+	return fmt.Sprintf("%s Telegram Token (TELEGRAM_TOKEN): Valid (Bot: @%s, Token: %s) # Handles Telegram bot interactions",
+		successSymbol, result.Result.Username, sanitizedToken)
 }
 
 // checkDiscordToken validates the Discord token.
@@ -159,14 +159,14 @@ func checkDiscordToken(errorSymbol, successSymbol string) string {
 	}
 
 	sanitizedToken := "****" + token[len(token)-4:]
-return fmt.Sprintf("%s Discord Token (DISCORD_TOKEN): Valid (Bot: %s, Token: %s) # Handles Discord bot interactions",
-	successSymbol, result.Username, sanitizedToken)
+	return fmt.Sprintf("%s Discord Token (DISCORD_TOKEN): Valid (Bot: %s, Token: %s) # Handles Discord bot interactions",
+		successSymbol, result.Username, sanitizedToken)
 }
 
 // checkMistralToken validates the Mistral token.
 func checkMistralToken(warningSymbol, errorSymbol, successSymbol string) string {
 	token := os.Getenv("MISTRAL_TOKEN")
-if token == "" {
+	if token == "" {
 		return fmt.Sprintf("%s Mistral Token (MISTRAL_TOKEN): Missing # Required for tuplilla (LLM) feature", warningSymbol)
 	}
 
@@ -180,8 +180,8 @@ if token == "" {
 	}
 
 	sanitizedToken := "****" + token[len(token)-4:]
-return fmt.Sprintf("%s Mistral Token (MISTRAL_TOKEN): Valid (Token: %s) # Required for tuplilla (LLM) feature",
-	successSymbol, sanitizedToken)
+	return fmt.Sprintf("%s Mistral Token (MISTRAL_TOKEN): Valid (Token: %s) # Required for tuplilla (LLM) feature",
+		successSymbol, sanitizedToken)
 }
 
 // checkYtDlp checks if yt-dlp is installed and available.

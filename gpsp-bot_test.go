@@ -71,3 +71,27 @@ func TestMainNoArgs(t *testing.T) {
 		t.Errorf("Expected output to contain 'Usage: gpsp-bot', got %q", output)
 	}
 }
+
+func TestParseDayVideoArgs(t *testing.T) {
+	outputPath, when, err := parseDayVideoArgs([]string{"/tmp/custom.mp4", "2026-09-30"})
+	if err != nil {
+		t.Fatalf("parseDayVideoArgs() error: %v", err)
+	}
+	if outputPath != "/tmp/custom.mp4" {
+		t.Errorf("outputPath = %q, want /tmp/custom.mp4", outputPath)
+	}
+	if when.Format("2006-01-02") != "2026-09-30" {
+		t.Errorf("when = %v, want 2026-09-30", when)
+	}
+
+	outputPath, when, err = parseDayVideoArgs([]string{"2026-09-30"})
+	if err != nil {
+		t.Fatalf("parseDayVideoArgs() error: %v", err)
+	}
+	if outputPath != "/tmp/day-video-output.mp4" {
+		t.Errorf("outputPath = %q, want default", outputPath)
+	}
+	if when.Format("2006-01-02") != "2026-09-30" {
+		t.Errorf("when = %v, want 2026-09-30", when)
+	}
+}
