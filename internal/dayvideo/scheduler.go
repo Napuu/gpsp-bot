@@ -75,23 +75,30 @@ func Enabled() bool {
 	return slices.Contains(config.EnabledFeatures(), "daymeme")
 }
 
-// Start launches the background ticker until ctx is cancelled.
+// Start launches the background scan loop until ctx is cancelled.
+// Each iteration waits a jittered interval around tickerInterval (50–150%, averaging 100%).
 func (s *Scheduler) Start(ctx context.Context) {
 	if s == nil || !Enabled() {
 		return
 	}
 	go func() {
-		ticker := time.NewTicker(s.tickerInterval)
-		defer ticker.Stop()
+		timer := time.NewTimer(s.nextTickDelay())
+		defer timer.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
+			case <-timer.C:
 				s.runBackgroundScan()
+				timer.Reset(s.nextTickDelay())
 			}
 		}
 	}()
+}
+
+func (s *Scheduler) nextTickDelay() time.Duration {
+	base := float64(s.tickerInterval)
+	return time.Duration(base * (0.5 + s.rand.Float64()))
 }
 
 func (s *Scheduler) runBackgroundScan() {
@@ -102,10 +109,10 @@ func (s *Scheduler) runBackgroundScan() {
 	}
 
 	now := s.clock.Now()
-	groupIDs, err := utils.ListDueActiveGroups(db, now)
+	groupIDs, err := utils.ListActiveVideoGroups(db, now)
 	db.Close()
 	if err != nil {
-		slog.Warn("day video background scan: list due active groups", "error", err)
+		slog.Warn("day video background scan: list active video groups", "error", err)
 		return
 	}
 
@@ -125,74 +132,8 @@ func (s *Scheduler) runBackgroundScan() {
 	}
 }
 
-// RecordActivityAndTry records group activity from a message and attempts a post.
-func (s *Scheduler) RecordActivityAndTry(platform, chatID string, isGroupChat bool, memberCount int) {
-	if s == nil || !Enabled() {
-		return
-	}
-	if !isGroupChat {
-		return
-	}
-
-	groupID := platform + ":" + chatID
-	now := s.clock.Now()
-
-	db, err := utils.OpenStatsDB(s.dbPath)
-	if err != nil {
-		slog.Warn("day video: open db", "error", err)
-		return
-	}
-
-	var memberPtr *int
-	if memberCount > 0 {
-		memberPtr = &memberCount
-	} else if activity, err := utils.GetGroupActivity(db, groupID); err == nil && activity.MemberCount.Valid {
-		cached := int(activity.MemberCount.Int64)
-		memberPtr = &cached
-	}
-	if err := utils.RecordGroupActivity(db, groupID, platform, memberPtr, now); err != nil {
-		db.Close()
-		slog.Warn("day video: record activity", "error", err)
-		return
-	}
-
-	if err := s.ensureState(db, groupID, now); err != nil {
-		db.Close()
-		slog.Warn("day video: ensure state", "error", err)
-		return
-	}
-	db.Close()
-
-	s.tryPostAsync(PostContext{
-		GroupID:        groupID,
-		Platform:       platform,
-		ChatID:         chatID,
-		Telebot:        s.telebot,
-		DiscordSession: s.discord,
-	})
-}
-
-func (s *Scheduler) tryPostAsync(ctx PostContext) {
-	go s.tryPost(ctx)
-}
-
-func (s *Scheduler) ensureState(db *sql.DB, groupID string, now time.Time) error {
-	_, err := utils.GetDayVideoState(db, groupID)
-	if err == nil {
-		return nil
-	}
-	if err != sql.ErrNoRows {
-		return err
-	}
-	eligibleFrom, dueBy := utils.InitialSchedule(now, s.rand)
-	return utils.UpsertDayVideoState(db, utils.DayVideoStateRow{
-		GroupID:      groupID,
-		EligibleFrom: eligibleFrom,
-		DueBy:        dueBy,
-	})
-}
-
 // reservePostIfDue reads schedule state and reserves the next window when a post should happen.
+// A newly seen group is seeded with an initial schedule and skipped this round.
 // The DB connection is closed before returning.
 func (s *Scheduler) reservePostIfDue(ctx PostContext) (*postAttempt, bool) {
 	db, err := utils.OpenStatsDB(s.dbPath)
@@ -207,19 +148,17 @@ func (s *Scheduler) reservePostIfDue(ctx PostContext) (*postAttempt, bool) {
 	if err != nil {
 		if err != sql.ErrNoRows {
 			slog.Warn("day video: load state", "error", err)
+			return nil, false
+		}
+		eligibleFrom, dueBy := utils.InitialSchedule(now, s.rand)
+		if err := utils.UpsertDayVideoState(db, utils.DayVideoStateRow{
+			GroupID:      ctx.GroupID,
+			EligibleFrom: eligibleFrom,
+			DueBy:        dueBy,
+		}); err != nil {
+			slog.Warn("day video: seed state", "error", err)
 		}
 		return nil, false
-	}
-
-	activity, err := utils.GetGroupActivity(db, ctx.GroupID)
-	if err != nil {
-		slog.Warn("day video: load activity", "error", err)
-		return nil, false
-	}
-
-	memberCount := 0
-	if activity.MemberCount.Valid {
-		memberCount = int(activity.MemberCount.Int64)
 	}
 
 	since := now.Add(-utils.DayVideoVideoLookback)
@@ -229,13 +168,22 @@ func (s *Scheduler) reservePostIfDue(ctx PostContext) (*postAttempt, bool) {
 		return nil, false
 	}
 
-	snapshot := utils.GroupActivitySnapshot{
-		IsGroupChat:   true,
-		MemberCount:   memberCount,
-		LastMessageAt: activity.LastMessageAt,
+	if !utils.IsGroupActive(recentVideos) {
+		return nil, false
+	}
+	if !utils.InDayVideoPostWindow(now) {
+		return nil, false
+	}
+	if now.Before(state.EligibleFrom) {
+		return nil, false
 	}
 
-	if !utils.ShouldPostDayVideo(now, *state, snapshot, recentVideos, s.rand) {
+	shouldPost := utils.EvaluateDayVideoPost(now, *state, s.rand)
+	if !shouldPost {
+		state.LastCheckedAt = sql.NullTime{Time: now, Valid: true}
+		if err := utils.UpsertDayVideoState(db, *state); err != nil {
+			slog.Warn("day video: record check", "error", err)
+		}
 		return nil, false
 	}
 

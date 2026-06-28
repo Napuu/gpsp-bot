@@ -55,7 +55,7 @@ no dubz: Ei tuplia 😿, ei tehdä asiaa X
 
 ### Day meme easter egg (`daymeme`)
 
-Not a user command. When enabled via `ENABLED_FEATURES=daymeme`, the bot may occasionally post a short day meme video to active group chats. Eligibility: at least 3 members, a message in the last 24 hours, and at least 7 bot video downloads in the last 7 days. Scheduling uses a random 14–28 day window; posting is attempted during **03:00–11:59 UTC** only. The overlay date is the **UTC calendar date**.
+Not a user command. When enabled via `ENABLED_FEATURES=daymeme`, the bot may occasionally post a short day meme video to active group chats. A group is considered active purely from bot video activity: at least 7 non-repost bot video downloads in group chats in the last 7 days (the same posts already tracked for reactions). Posting is driven by a background scan only, not by individual messages. Scheduling uses a random 14–42 day window; posting is attempted during **03:00–11:59 UTC** only. The overlay date is the **UTC calendar date**.
 
 Generate a video manually for testing:
 ```

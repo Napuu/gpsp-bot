@@ -7,6 +7,7 @@ import (
 
 	"github.com/napuu/gpsp-bot/internal/config"
 	"github.com/napuu/gpsp-bot/pkg/utils"
+	tele "gopkg.in/telebot.v4"
 )
 
 const statsDBFileName = "repost_fingerprints.duckdb"
@@ -50,6 +51,7 @@ func (h *VideoStatsHandler) Execute(m *Context) {
 			SourceUrl:    m.url,
 			BotMessageId: m.botMessageId,
 			IsRepost:     m.isRepost,
+			IsGroupChat:  isGroupChat(m),
 			PostedAt:     time.Now(),
 		}
 		if err := utils.RecordVideoPost(db, entry); err != nil {
@@ -64,4 +66,22 @@ func (h *VideoStatsHandler) Execute(m *Context) {
 
 func (h *VideoStatsHandler) SetNext(next ContextHandler) {
 	h.next = next
+}
+
+// isGroupChat reports whether the message originated from a multi-user chat
+// (Telegram group/supergroup or a Discord guild channel) rather than a 1:1 DM.
+// This gates the day meme easter egg, which should only post to group chats.
+func isGroupChat(m *Context) bool {
+	switch m.Service {
+	case Telegram:
+		if m.TelebotContext == nil || m.TelebotContext.Chat() == nil {
+			return false
+		}
+		chatType := m.TelebotContext.Chat().Type
+		return chatType == tele.ChatGroup || chatType == tele.ChatSuperGroup
+	case Discord:
+		return m.guildId != ""
+	default:
+		return false
+	}
 }

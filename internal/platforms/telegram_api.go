@@ -53,7 +53,7 @@ func RunTelegramBot() {
 	}
 	bot := getTelegramBot(dbPath)
 	dayVideoScheduler := dayvideo.NewScheduler(dbPath, bot, nil)
-	handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+	handlerChain := chain.NewChainOfResponsibility()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	dayVideoScheduler.Start(ctx)

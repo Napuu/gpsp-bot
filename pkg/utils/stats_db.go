@@ -19,6 +19,7 @@ type VideoStatEntry struct {
 	SourceUrl    string
 	BotMessageId string
 	IsRepost     bool
+	IsGroupChat  bool
 	PostedAt     time.Time
 }
 
@@ -58,12 +59,12 @@ func OpenStatsDB(dbPath string) (*sql.DB, error) {
 // RecordVideoPost inserts one row into video_stats for a successful video send.
 func RecordVideoPost(db *sql.DB, entry VideoStatEntry) error {
 	query := `
-		INSERT INTO video_stats (platform, group_id, user_id, username, source_url, bot_message_id, is_repost, posted_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO video_stats (platform, group_id, user_id, username, source_url, bot_message_id, is_repost, is_group_chat, posted_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err := db.Exec(query,
 		entry.Platform, entry.GroupId, entry.UserId, entry.Username,
-		entry.SourceUrl, entry.BotMessageId, entry.IsRepost, entry.PostedAt,
+		entry.SourceUrl, entry.BotMessageId, entry.IsRepost, entry.IsGroupChat, entry.PostedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to record video stat: %w", err)

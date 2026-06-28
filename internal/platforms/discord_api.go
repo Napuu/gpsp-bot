@@ -48,7 +48,7 @@ func RunDiscordBot() {
 	}
 
 	dayVideoScheduler := dayvideo.NewScheduler(dbPath, nil, dg)
-	handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+	handlerChain := chain.NewChainOfResponsibility()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	dayVideoScheduler.Start(ctx)

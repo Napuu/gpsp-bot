@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"database/sql"
 	"math/rand"
 	"testing"
 	"time"
@@ -46,32 +47,44 @@ func TestInDayVideoPostWindow(t *testing.T) {
 }
 
 func TestIsGroupActive(t *testing.T) {
-	now := utcAt(2026, time.June, 6, 10, 0)
-	active := GroupActivitySnapshot{
-		IsGroupChat:   true,
-		MemberCount:   10,
-		LastMessageAt: now.Add(-1 * time.Hour),
-	}
-
 	tests := []struct {
 		name   string
-		act    GroupActivitySnapshot
 		videos int
 		want   bool
 	}{
-		{"all gates pass", active, 7, true},
-		{"dm", GroupActivitySnapshot{IsGroupChat: false, MemberCount: 10, LastMessageAt: now}, 7, false},
-		{"too few members", GroupActivitySnapshot{IsGroupChat: true, MemberCount: 2, LastMessageAt: now}, 7, false},
-		{"stale messages", GroupActivitySnapshot{IsGroupChat: true, MemberCount: 10, LastMessageAt: now.Add(-25 * time.Hour)}, 7, false},
-		{"too few videos", active, 6, false},
+		{"enough videos", 7, true},
+		{"more than enough", 20, true},
+		{"too few videos", 6, false},
+		{"no videos", 0, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsGroupActive(now, tt.act, tt.videos); got != tt.want {
-				t.Fatalf("IsGroupActive() = %v, want %v", got, tt.want)
+			if got := IsGroupActive(tt.videos); got != tt.want {
+				t.Fatalf("IsGroupActive(%d) = %v, want %v", tt.videos, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDayVideoCheckReference(t *testing.T) {
+	eligible := utcAt(2026, time.June, 1, 0, 0)
+	checked := eligible.Add(2 * 24 * time.Hour)
+
+	state := DayVideoStateRow{EligibleFrom: eligible}
+	if got := DayVideoCheckReference(state); !got.Equal(eligible) {
+		t.Fatalf("without last_checked = %v, want eligible %v", got, eligible)
+	}
+
+	state.LastCheckedAt = sql.NullTime{Time: checked, Valid: true}
+	if got := DayVideoCheckReference(state); !got.Equal(checked) {
+		t.Fatalf("with last_checked = %v, want %v", got, checked)
+	}
+
+	stale := eligible.Add(-time.Hour)
+	state.LastCheckedAt = sql.NullTime{Time: stale, Valid: true}
+	if got := DayVideoCheckReference(state); !got.Equal(eligible) {
+		t.Fatalf("stale last_checked = %v, want eligible %v", got, eligible)
 	}
 }
 
@@ -79,50 +92,80 @@ func TestPostProbability(t *testing.T) {
 	eligible := utcAt(2026, time.June, 1, 0, 0)
 	dueBy := eligible.Add(14 * 24 * time.Hour)
 
-	if p := PostProbability(eligible.Add(-time.Hour), eligible, dueBy); p != 0 {
+	if p := PostProbability(eligible.Add(-time.Hour), eligible, eligible, dueBy); p != 0 {
 		t.Fatalf("before eligible = %v, want 0", p)
 	}
-	if p := PostProbability(dueBy, eligible, dueBy); p != 1 {
+	if p := PostProbability(dueBy, eligible, eligible, dueBy); p != 1 {
 		t.Fatalf("at dueBy = %v, want 1", p)
 	}
+	if p := PostProbability(eligible, eligible, eligible, dueBy); p != 0 {
+		t.Fatalf("first check at eligible = %v, want 0", p)
+	}
+
 	mid := eligible.Add(7 * 24 * time.Hour)
-	if p := PostProbability(mid, eligible, dueBy); p < 0.4 || p > 0.5 {
-		t.Fatalf("mid progress probability = %v, want ~0.425", p)
+	if p := PostProbability(eligible, mid, eligible, dueBy); p < 0.49 || p > 0.51 {
+		t.Fatalf("half-window probability = %v, want ~0.5", p)
+	}
+
+	latePrev := eligible.Add(6 * 24 * time.Hour)
+	if p := PostProbability(latePrev, mid, eligible, dueBy); p < 0.12 || p > 0.13 {
+		t.Fatalf("incremental probability = %v, want ~0.125", p)
 	}
 }
 
-func TestShouldPostDayVideoForcedAfterDueBy(t *testing.T) {
+// TestEvaluateDayVideoPostForcedAfterDueBy verifies that the production decision
+// core forces a post once now is past due_by, regardless of the random roll.
+func TestEvaluateDayVideoPostForcedAfterDueBy(t *testing.T) {
 	now := utcAt(2026, time.June, 10, 8, 0)
 	state := DayVideoStateRow{
 		EligibleFrom: utcAt(2026, time.May, 20, 0, 0),
 		DueBy:        utcAt(2026, time.June, 1, 0, 0),
 	}
-	activity := GroupActivitySnapshot{
-		IsGroupChat:   true,
-		MemberCount:   10,
-		LastMessageAt: now.Add(-time.Hour),
-	}
 	rng := &fixedRand{values: []float64{0.99}}
 
-	if !ShouldPostDayVideo(now, state, activity, 7, rng) {
+	// Preconditions the production gates enforce before EvaluateDayVideoPost runs.
+	if !InDayVideoPostWindow(now) {
+		t.Fatal("precondition: now should be in the post window")
+	}
+	if now.Before(state.EligibleFrom) {
+		t.Fatal("precondition: now should be at or after eligible_from")
+	}
+
+	if !EvaluateDayVideoPost(now, state, rng) {
 		t.Fatal("expected forced post after due_by")
 	}
 }
 
-func TestShouldPostDayVideoLowProbabilityAtStart(t *testing.T) {
+// TestIsGroupActiveThreshold verifies the real activity gate production calls:
+// a recent video count below the threshold makes a group ineligible.
+func TestIsGroupActiveThreshold(t *testing.T) {
+	if IsGroupActive(6) {
+		t.Fatal("expected group with 6 recent videos to be inactive")
+	}
+	if !IsGroupActive(7) {
+		t.Fatal("expected group with 7 recent videos to be active")
+	}
+}
+
+// TestEvaluateDayVideoPostLowProbabilityAtStart verifies the production decision
+// core does not post near the very start of the window with a moderate roll.
+func TestEvaluateDayVideoPostLowProbabilityAtStart(t *testing.T) {
 	eligible := utcAt(2026, time.June, 1, 3, 0)
 	dueBy := eligible.Add(14 * 24 * time.Hour)
-	now := eligible
+	now := eligible.Add(time.Hour)
 	state := DayVideoStateRow{EligibleFrom: eligible, DueBy: dueBy}
-	activity := GroupActivitySnapshot{
-		IsGroupChat:   true,
-		MemberCount:   10,
-		LastMessageAt: now,
-	}
 	rng := &fixedRand{values: []float64{0.5}}
 
-	if ShouldPostDayVideo(now, state, activity, 7, rng) {
-		t.Fatal("expected no post with high roll at start of window")
+	// Preconditions the production gates enforce before EvaluateDayVideoPost runs.
+	if !InDayVideoPostWindow(now) {
+		t.Fatal("precondition: now should be in the post window")
+	}
+	if now.Before(state.EligibleFrom) {
+		t.Fatal("precondition: now should be at or after eligible_from")
+	}
+
+	if EvaluateDayVideoPost(now, state, rng) {
+		t.Fatal("expected no post with high roll near start of window")
 	}
 }
 

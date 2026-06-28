@@ -53,6 +53,7 @@ func InitRepostDB(dbPath string) error {
 			thumbs_up_count INT NOT NULL DEFAULT 0,
 			thumbs_down_count INT NOT NULL DEFAULT 0,
 			is_repost     BOOLEAN NOT NULL DEFAULT FALSE,
+			is_group_chat BOOLEAN NOT NULL DEFAULT FALSE,
 			posted_at     TIMESTAMP NOT NULL
 		);
 		CREATE UNIQUE INDEX IF NOT EXISTS idx_video_stats_lookup
@@ -63,20 +64,16 @@ func InitRepostDB(dbPath string) error {
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_up_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS thumbs_down_count INT DEFAULT 0;
 		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS is_repost BOOLEAN DEFAULT FALSE;
+		ALTER TABLE video_stats ADD COLUMN IF NOT EXISTS is_group_chat BOOLEAN DEFAULT FALSE;
 		ALTER TABLE fingerprints ADD COLUMN IF NOT EXISTS ocr_text_hash TEXT;
-		CREATE TABLE IF NOT EXISTS group_activity (
-			group_id TEXT PRIMARY KEY,
-			platform TEXT NOT NULL,
-			last_message_at TIMESTAMP NOT NULL,
-			member_count INT,
-			member_count_updated_at TIMESTAMP
-		);
 		CREATE TABLE IF NOT EXISTS day_video_state (
 			group_id TEXT PRIMARY KEY,
 			last_posted_at TIMESTAMP,
+			last_checked_at TIMESTAMP,
 			eligible_from TIMESTAMP NOT NULL,
 			due_by TIMESTAMP NOT NULL
 		);
+		ALTER TABLE day_video_state ADD COLUMN IF NOT EXISTS last_checked_at TIMESTAMP;
 	`
 
 	_, err = conn.Exec(schema)

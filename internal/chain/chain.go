@@ -1,7 +1,6 @@
 package chain
 
 import (
-	"github.com/napuu/gpsp-bot/internal/dayvideo"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 )
 
@@ -9,9 +8,8 @@ type HandlerChain struct {
 	rootParser handlers.ContextHandler
 }
 
-func NewChainOfResponsibility(dayVideoScheduler *dayvideo.Scheduler) *HandlerChain {
+func NewChainOfResponsibility() *HandlerChain {
 	onTextHandler := &handlers.OnTextHandler{}
-	dayVideoHandler := handlers.NewDayVideoHandler(dayVideoScheduler)
 
 	genericMessageHandler := &handlers.GenericMessageHandler{}
 
@@ -41,8 +39,7 @@ func NewChainOfResponsibility(dayVideoScheduler *dayvideo.Scheduler) *HandlerCha
 
 	endOfChainHandler := &handlers.EndOfChainHandler{}
 
-	onTextHandler.SetNext(dayVideoHandler)
-	dayVideoHandler.SetNext(genericMessageHandler)
+	onTextHandler.SetNext(genericMessageHandler)
 
 	genericMessageHandler.SetNext(urlParsingHandler)
 	urlParsingHandler.SetNext(typingHandler)

@@ -93,7 +93,7 @@ func main() {
 		}
 
 		dayVideoScheduler = dayvideo.NewScheduler(dbPath, bot, nil)
-		handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+		handlerChain := chain.NewChainOfResponsibility()
 		dayVideoScheduler.Start(ctx)
 
 		bot.Handle(tele.OnText, wrapTeleHandler(bot, handlerChain))
@@ -108,7 +108,7 @@ func main() {
 		}
 
 		dayVideoScheduler = dayvideo.NewScheduler(dbPath, nil, dg)
-		handlerChain := chain.NewChainOfResponsibility(dayVideoScheduler)
+		handlerChain := chain.NewChainOfResponsibility()
 		dayVideoScheduler.Start(ctx)
 
 		dg.AddHandler(wrapDiscoHandler(handlerChain))

@@ -67,11 +67,7 @@ func seedEligibleGroup(t *testing.T, dbPath, groupID string, now time.Time) {
 	}
 	defer db.Close()
 
-	platform, chatID, _ := parseGroupID(groupID)
-	memberCount := 10
-	if err := utils.RecordGroupActivity(db, groupID, platform, &memberCount, now); err != nil {
-		t.Fatalf("RecordGroupActivity: %v", err)
-	}
+	platform, _, _ := parseGroupID(groupID)
 
 	dueBy := now.Add(-time.Hour)
 	if err := utils.UpsertDayVideoState(db, utils.DayVideoStateRow{
@@ -90,13 +86,70 @@ func seedEligibleGroup(t *testing.T, dbPath, groupID string, now time.Time) {
 			Username:     "alice",
 			SourceUrl:    "https://example.com/v",
 			BotMessageId: fmt.Sprintf("m%d", i),
+			IsGroupChat:  true,
 			PostedAt:     now.Add(-time.Duration(i) * time.Hour),
 		}
 		if err := utils.RecordVideoPost(db, entry); err != nil {
 			t.Fatalf("RecordVideoPost: %v", err)
 		}
 	}
-	_ = chatID
+}
+
+func TestSchedulerRecordsLastCheckedWhenNotPosting(t *testing.T) {
+	sched, _, clock, dbPath := setupSchedulerTest(t)
+	groupID := "discord:check"
+	now := clock.now
+
+	db, err := utils.OpenStatsDB(dbPath)
+	if err != nil {
+		t.Fatalf("OpenStatsDB: %v", err)
+	}
+	defer db.Close()
+
+	eligible := now.Add(-2 * 24 * time.Hour)
+	dueBy := now.Add(10 * 24 * time.Hour)
+	if err := utils.UpsertDayVideoState(db, utils.DayVideoStateRow{
+		GroupID:      groupID,
+		EligibleFrom: eligible,
+		DueBy:        dueBy,
+	}); err != nil {
+		t.Fatalf("UpsertDayVideoState: %v", err)
+	}
+	for i := 0; i < 7; i++ {
+		entry := utils.VideoStatEntry{
+			Platform:     "discord",
+			GroupId:      groupID,
+			UserId:       "u1",
+			Username:     "alice",
+			SourceUrl:    "https://example.com/v",
+			BotMessageId: fmt.Sprintf("check-m%d", i),
+			IsGroupChat:  true,
+			PostedAt:     now.Add(-time.Duration(i) * time.Hour),
+		}
+		if err := utils.RecordVideoPost(db, entry); err != nil {
+			t.Fatalf("RecordVideoPost: %v", err)
+		}
+	}
+	db.Close()
+
+	sched.tryPost(PostContext{GroupID: groupID, Platform: "discord", ChatID: "check"})
+
+	db, err = utils.OpenStatsDB(dbPath)
+	if err != nil {
+		t.Fatalf("OpenStatsDB: %v", err)
+	}
+	defer db.Close()
+
+	state, err := utils.GetDayVideoState(db, groupID)
+	if err != nil {
+		t.Fatalf("GetDayVideoState: %v", err)
+	}
+	if !state.LastCheckedAt.Valid || !state.LastCheckedAt.Time.Equal(now) {
+		t.Fatalf("last_checked_at = %v, want %v", state.LastCheckedAt, now)
+	}
+	if state.LastPostedAt.Valid {
+		t.Fatal("expected no post for early-window check")
+	}
 }
 
 func TestSchedulerTryPostWhenDue(t *testing.T) {
@@ -158,10 +211,7 @@ func TestSchedulerSkipsInactiveGroup(t *testing.T) {
 	}
 	defer db.Close()
 
-	memberCount := 2
-	if err := utils.RecordGroupActivity(db, groupID, "discord", &memberCount, now); err != nil {
-		t.Fatalf("RecordGroupActivity: %v", err)
-	}
+	// Schedule is due, but the group lacks enough recent group-chat videos.
 	if err := utils.UpsertDayVideoState(db, utils.DayVideoStateRow{
 		GroupID:      groupID,
 		EligibleFrom: now.Add(-time.Hour),
@@ -169,10 +219,75 @@ func TestSchedulerSkipsInactiveGroup(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("UpsertDayVideoState: %v", err)
 	}
+	for i := 0; i < 6; i++ {
+		entry := utils.VideoStatEntry{
+			Platform:     "discord",
+			GroupId:      groupID,
+			UserId:       "u1",
+			Username:     "alice",
+			SourceUrl:    "https://example.com/v",
+			BotMessageId: fmt.Sprintf("inactive-m%d", i),
+			IsGroupChat:  true,
+			PostedAt:     now.Add(-time.Duration(i) * time.Hour),
+		}
+		if err := utils.RecordVideoPost(db, entry); err != nil {
+			t.Fatalf("RecordVideoPost: %v", err)
+		}
+	}
 
 	sched.tryPost(PostContext{GroupID: groupID, Platform: "discord", ChatID: "789"})
 	if poster.count() != 0 {
 		t.Fatalf("poster calls = %d, want 0 for inactive group", poster.count())
+	}
+}
+
+func TestSchedulerScanSeedsNewActiveGroupWithoutPosting(t *testing.T) {
+	sched, poster, clock, dbPath := setupSchedulerTest(t)
+	groupID := "discord:fresh"
+	now := clock.now
+
+	db, err := utils.OpenStatsDB(dbPath)
+	if err != nil {
+		t.Fatalf("OpenStatsDB: %v", err)
+	}
+	for i := 0; i < 7; i++ {
+		entry := utils.VideoStatEntry{
+			Platform:     "discord",
+			GroupId:      groupID,
+			UserId:       "u1",
+			Username:     "alice",
+			SourceUrl:    "https://example.com/v",
+			BotMessageId: fmt.Sprintf("fresh-m%d", i),
+			IsGroupChat:  true,
+			PostedAt:     now.Add(-time.Duration(i) * time.Hour),
+		}
+		if err := utils.RecordVideoPost(db, entry); err != nil {
+			t.Fatalf("RecordVideoPost: %v", err)
+		}
+	}
+	db.Close()
+
+	sched.runBackgroundScan()
+
+	if poster.count() != 0 {
+		t.Fatalf("poster calls = %d, want 0 for newly seeded group", poster.count())
+	}
+
+	db, err = utils.OpenStatsDB(dbPath)
+	if err != nil {
+		t.Fatalf("OpenStatsDB: %v", err)
+	}
+	defer db.Close()
+
+	state, err := utils.GetDayVideoState(db, groupID)
+	if err != nil {
+		t.Fatalf("GetDayVideoState: %v", err)
+	}
+	if !state.EligibleFrom.After(now) {
+		t.Fatalf("expected eligible_from %v to be in the future relative to %v", state.EligibleFrom, now)
+	}
+	if state.LastPostedAt.Valid {
+		t.Fatal("expected last_posted_at to be unset for a freshly seeded group")
 	}
 }
 

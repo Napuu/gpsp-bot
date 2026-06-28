@@ -3,7 +3,7 @@
 ## Repository Overview
 **gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, SQLite (requires CGO).
 
-**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `day_video_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler. `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `daymeme` (background day meme video easter egg, not a user command).
+**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler (a background ticker; it is not message-triggered). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `daymeme` (background day meme video easter egg, not a user command).
 
 **Key Files**:
 - `gpsp-bot.go` - Main entry point
@@ -16,7 +16,7 @@
 - `internal/handlers/euribor_handler.go` - Euribor rates handler
 - `internal/handlers/tuplilla_response_handler.go` - Tuplilla (dice+LLM) handler
 - `internal/handlers/video_download_handler.go` - Video download handler
-- `internal/handlers/day_video_handler.go` - Day meme activity tracking handler
+- `internal/handlers/video_stats_handler.go` - Records bot video posts (incl. `is_group_chat`), the day meme activity signal
 - `internal/dayvideo/scheduler.go` - Day meme background scheduler
 - `internal/platforms/common.go` - Platform validation
 - `.github/workflows/build.yml` - CI/CD pipeline
