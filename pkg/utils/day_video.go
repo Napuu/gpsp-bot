@@ -200,8 +200,3 @@ func GenerateDayVideo(outputPath string, t time.Time) error {
 	}
 	return nil
 }
-
-// GenerateTodayVideo creates a day meme video for the current UTC time.
-func GenerateTodayVideo(outputPath string) error {
-	return GenerateDayVideo(outputPath, time.Now().UTC())
-}

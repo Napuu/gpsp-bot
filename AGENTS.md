@@ -34,6 +34,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 **Coverage**: `go test -v -coverprofile=coverage.out ./...`  
 **Format**: `go fmt ./...`  
 **Vet**: `go vet ./...`  
+**Dead code**: `go run golang.org/x/tools/cmd/deadcode@v0.28.0 -test ./...` (should print nothing; any output is an unreachable function)  
 **Dependencies**: `go mod download` or `go mod tidy`
 
 **Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN). Use `./gpsp-bot doctor` to run diagnostics and validate configuration. Generate a day meme video manually with `./gpsp-bot day-video [output] [YYYY-MM-DD]` (UTC date).  
@@ -44,7 +45,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 ## CI/CD Pipeline
 
 `.github/workflows/build.yml` runs on push/PR to main, `workflow_dispatch`, or `workflow_call`:
-1. **test** job: Go 1.23.0, runs `go test -v ./...`
+1. **test** job: Go 1.23.0, runs `go test -v ./...` then `go run golang.org/x/tools/cmd/deadcode@v0.28.0 -test ./...` (fails the build on any unreachable function)
 2. **build** job (after test): Matrix for linux-amd64 and linux-arm64, sets CGO_ENABLED=1, installs cross-compiler for arm64, embeds version via `-ldflags`, uploads artifacts (configurable retention days, default 30)
 
 **Inputs**:

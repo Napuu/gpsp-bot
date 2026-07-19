@@ -40,6 +40,15 @@ jobs:
         run: |
           go test -v ./...
 
+      - name: Check for dead code
+        run: |
+          output=$(go run golang.org/x/tools/cmd/deadcode@v0.28.0 -test ./...)
+          if [ -n "$output" ]; then
+            echo "$output"
+            echo "::error::deadcode found unreachable function(s) — remove them or wire them up"
+            exit 1
+          fi
+
   build:
     name: Build for ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: ubuntu-latest
