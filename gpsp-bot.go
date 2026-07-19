@@ -16,6 +16,7 @@ import (
 	"github.com/napuu/gpsp-bot/internal/dayvideo"
 	"github.com/napuu/gpsp-bot/internal/doctor"
 	"github.com/napuu/gpsp-bot/internal/handlers"
+	"github.com/napuu/gpsp-bot/internal/platforms"
 	"github.com/napuu/gpsp-bot/internal/version"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 	tele "gopkg.in/telebot.v4"
@@ -53,6 +54,8 @@ func main() {
 	if platform != "telegram" && platform != "discord" {
 		log.Fatal("Platform must be either 'telegram' or 'discord'")
 	}
+
+	platforms.EnsureBotCanStart()
 
 	enabledFeatures := config.EnabledFeatures()
 	if len(enabledFeatures) == 0 || (len(enabledFeatures) == 1 && enabledFeatures[0] == "") {

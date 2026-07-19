@@ -23,6 +23,10 @@ func EnsureTmpDirExists(tmpDir string) {
 }
 
 func CleanupTmpDir(tmpDir string) {
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		slog.Error(fmt.Sprintf("Error ensuring tmp dir %s exists: %v\n", tmpDir, err))
+		return
+	}
 	cmd := exec.Command("find", tmpDir, "-type", "f", "-mtime", "+2", "-delete")
 	err := cmd.Run()
 	if err != nil {

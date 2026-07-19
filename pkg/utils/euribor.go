@@ -6,6 +6,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -89,6 +90,10 @@ func GenerateLine(data []EuriborRateEntry, outputPath string) error {
 			values = append(values, opts.LineData{Value: val})
 		}
 		line.AddSeries(name, values)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("failed to create output directory for chart: %v", err)
 	}
 
 	err := render.MakeChartSnapshot(line.RenderContent(), outputPath)
@@ -196,9 +201,15 @@ func GetRatesFromCSV(filePath string, startDate time.Time) []EuriborRateEntry {
 	}
 	defer conn.Close()
 
+	if err := os.MkdirAll(filePath, 0755); err != nil {
+		slog.Warn("could not create euribor csv directory", "path", filePath, "error", err)
+		return []EuriborRateEntry{}
+	}
+
 	files, err := os.ReadDir(filePath)
 	if err != nil {
-		log.Fatalf("could not read directory: %v", err)
+		slog.Warn("could not read euribor csv directory", "path", filePath, "error", err)
+		return []EuriborRateEntry{}
 	}
 
 	if len(files) == 0 {
