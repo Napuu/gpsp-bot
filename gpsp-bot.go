@@ -17,6 +17,7 @@ import (
 	"github.com/napuu/gpsp-bot/internal/doctor"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"github.com/napuu/gpsp-bot/internal/platforms"
+	"github.com/napuu/gpsp-bot/internal/telereactions"
 	"github.com/napuu/gpsp-bot/internal/version"
 	"github.com/napuu/gpsp-bot/pkg/utils"
 	tele "gopkg.in/telebot.v4"
@@ -61,6 +62,7 @@ func main() {
 	if len(enabledFeatures) == 0 || (len(enabledFeatures) == 1 && enabledFeatures[0] == "") {
 		log.Fatal("ENABLED_FEATURES environment variable is required")
 	}
+	platforms.VerifyEnabledCommands()
 
 	var token string
 	switch platform {
@@ -88,11 +90,36 @@ func main() {
 
 	switch platform {
 	case "telegram":
+		updateReactionCount := func(e telereactions.Event, delta int) {
+			db, err := utils.OpenStatsDB(dbPath)
+			if err != nil {
+				log.Printf("Failed to open stats DB for reaction: %v", err)
+				return
+			}
+			defer db.Close()
+			groupId := "telegram:" + fmt.Sprint(e.Chat.ID)
+			if err := utils.UpdateReactionCount(db, "telegram", groupId, fmt.Sprint(e.MessageID), e.Emoji, delta); err != nil {
+				log.Printf("Failed to update Telegram reaction count: %v", err)
+			}
+		}
+		poller := telereactions.Wrap(&tele.LongPoller{
+			Timeout:        10 * time.Second,
+			AllowedUpdates: []string{"message"},
+		}, telereactions.Handlers{
+			OnAdd:    func(e telereactions.Event) { updateReactionCount(e, +1) },
+			OnRemove: func(e telereactions.Event) { updateReactionCount(e, -1) },
+		})
+
 		bot, err := tele.NewBot(tele.Settings{
-			Token: token,
+			Token:  token,
+			Poller: poller,
 		})
 		if err != nil {
 			log.Fatalf("Failed to initialize Telegram bot: %v", err)
+		}
+
+		if err := bot.SetCommands(platforms.TelebotCompatibleVisibleCommands()); err != nil {
+			log.Printf("Failed to set Telegram commands: %v", err)
 		}
 
 		dayVideoScheduler = dayvideo.NewScheduler(dbPath, bot, nil)
@@ -114,7 +141,34 @@ func main() {
 		handlerChain := chain.NewChainOfResponsibility()
 		dayVideoScheduler.Start(ctx)
 
+		statsDB, err := utils.OpenStatsDB(dbPath)
+		if err != nil {
+			log.Fatalf("Failed to open stats DB for reaction tracking: %v", err)
+		}
+		defer statsDB.Close()
+
 		dg.AddHandler(wrapDiscoHandler(handlerChain))
+		dg.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+			if r.UserID == s.State.User.ID {
+				return
+			}
+			groupId := "discord:" + r.ChannelID
+			if err := utils.UpdateReactionCount(statsDB, "discord", groupId, r.MessageID, r.Emoji.Name, +1); err != nil {
+				log.Printf("Failed to update Discord reaction count: %v", err)
+			}
+		})
+		dg.AddHandler(func(s *discordgo.Session, r *discordgo.MessageReactionRemove) {
+			if r.UserID == s.State.User.ID {
+				return
+			}
+			groupId := "discord:" + r.ChannelID
+			if err := utils.UpdateReactionCount(statsDB, "discord", groupId, r.MessageID, r.Emoji.Name, -1); err != nil {
+				log.Printf("Failed to update Discord reaction count: %v", err)
+			}
+		})
+
+		dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMessageReactions
+
 		if err := dg.Open(); err != nil {
 			log.Fatalf("Failed to start Discord bot: %v", err)
 		}
