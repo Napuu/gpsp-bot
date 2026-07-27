@@ -315,7 +315,7 @@ func checkDirectory(name, defaultPath, errorSymbol, successSymbol string) string
 func checkEnabledFeatures(warningSymbol, errorSymbol, successSymbol string) string {
 	enabledFeatures := config.EnabledFeatures()
 	if len(enabledFeatures) == 0 || (len(enabledFeatures) == 1 && enabledFeatures[0] == "") {
-		return fmt.Sprintf("%s ENABLED_FEATURES: Not set # Valid features: ping, dl, euribor, tuplilla, stats, version, daymeme", errorSymbol)
+		return fmt.Sprintf("%s ENABLED_FEATURES: Not set # Valid features: ping, dl, euribor, tuplilla, stats, version, daymeme, happener", errorSymbol)
 	}
 
 	validFeatures := map[string]bool{
@@ -326,6 +326,7 @@ func checkEnabledFeatures(warningSymbol, errorSymbol, successSymbol string) stri
 		"stats":    true,
 		"version":  true,
 		"daymeme":  true,
+		"happener": true,
 	}
 
 	invalidFeatures := []string{}
@@ -367,5 +368,6 @@ func checkDirectories(errorSymbol, successSymbol string) []string {
 	results = append(results, checkDirectory("EURIBOR_GRAPH_DIR", "/tmp/euribor-graphs", errorSymbol, successSymbol))
 	results = append(results, checkDirectory("EURIBOR_CSV_DIR", "/tmp/euribor-exports", errorSymbol, successSymbol))
 	results = append(results, checkDirectory("REPOST_DB_DIR", "/tmp/repost-db", errorSymbol, successSymbol))
+	results = append(results, checkDirectory("TELETEXT_IMAGE_DIR", "/tmp/teletext", errorSymbol, successSymbol))
 	return results
 }

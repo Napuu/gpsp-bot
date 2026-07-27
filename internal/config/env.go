@@ -8,25 +8,27 @@ import (
 )
 
 type Config struct {
-	DISCORD_TOKEN     string
-	TELEGRAM_TOKEN    string
-	MISTRAL_TOKEN     string
-	YTDLP_TMP_DIR     string
-	EURIBOR_GRAPH_DIR string
-	PROXY_URLS        string
-	ENABLED_FEATURES  string
-	EURIBOR_CSV_DIR   string
-	REPOST_DB_DIR     string
-	ALWAYS_RE_ENCODE  bool
+	DISCORD_TOKEN      string
+	TELEGRAM_TOKEN     string
+	MISTRAL_TOKEN      string
+	YTDLP_TMP_DIR      string
+	EURIBOR_GRAPH_DIR  string
+	PROXY_URLS         string
+	ENABLED_FEATURES   string
+	EURIBOR_CSV_DIR    string
+	REPOST_DB_DIR      string
+	TELETEXT_IMAGE_DIR string
+	ALWAYS_RE_ENCODE   bool
 }
 
 func FromEnv() Config {
 	cfg := Config{
-		YTDLP_TMP_DIR:     "/tmp/ytdlp",
-		EURIBOR_GRAPH_DIR: "/tmp/euribor-graphs",
-		EURIBOR_CSV_DIR:   "/tmp/euribor-exports",
-		REPOST_DB_DIR:     "/tmp/repost-db",
-		ALWAYS_RE_ENCODE:  false,
+		YTDLP_TMP_DIR:      "/tmp/ytdlp",
+		EURIBOR_GRAPH_DIR:  "/tmp/euribor-graphs",
+		EURIBOR_CSV_DIR:    "/tmp/euribor-exports",
+		REPOST_DB_DIR:      "/tmp/repost-db",
+		TELETEXT_IMAGE_DIR: "/tmp/teletext",
+		ALWAYS_RE_ENCODE:   false,
 	}
 	v := reflect.ValueOf(&cfg).Elem()
 
