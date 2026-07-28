@@ -37,6 +37,9 @@ func (h *EndOfChainHandler) Execute(m *Context) {
 		utils.CleanupTmpDir(config.FromEnv().EURIBOR_GRAPH_DIR)
 		utils.CleanupTmpDir(config.FromEnv().EURIBOR_CSV_DIR)
 	}
+	if m.action == Happener {
+		utils.CleanupTmpDir(config.FromEnv().TELETEXT_IMAGE_DIR)
+	}
 
 }
 

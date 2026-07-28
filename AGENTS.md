@@ -3,7 +3,7 @@
 ## Repository Overview
 **gpsp-bot** is a Telegram/Discord bot using Go 1.23.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, SQLite (requires CGO).
 
-**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler (a background ticker; it is not message-triggered). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `daymeme` (background day meme video easter egg, not a user command).
+**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler (a background ticker; it is not message-triggered). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `happener` (YLE teksti-TV page as image), `daymeme` (background day meme video easter egg, not a user command).
 
 **Key Files**:
 - `gpsp-bot.go` - Main entry point
@@ -14,6 +14,7 @@
 - `internal/handlers/stats_handler.go` - Stats feature handler
 - `internal/handlers/repost_detection_handler.go` - Repost detection handler
 - `internal/handlers/euribor_handler.go` - Euribor rates handler
+- `internal/handlers/happener_handler.go` - Teksti-TV page handler (`/häppener`, `/happener`); page fetching lives in `pkg/utils/teletext.go`
 - `internal/handlers/tuplilla_response_handler.go` - Tuplilla (dice+LLM) handler
 - `internal/handlers/video_download_handler.go` - Video download handler
 - `internal/handlers/video_stats_handler.go` - Records bot video posts (incl. `is_group_chat`), the day meme activity signal
@@ -58,7 +59,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 
 **Build**: SQLite needs `CGO_ENABLED=1`. arm64 cross-compile needs cross-compiler toolchain. yt-dlp/ffmpeg checked at runtime only.
 
-**Runtime**: Empty/invalid ENABLED_FEATURES causes panic. Bot creates writable temp dirs: YTDLP_TMP_DIR (`/tmp/ytdlp`, also used for day meme temp files under `day-video/`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`). Day meme overlay uses UTC calendar date; posts are attempted only during 03:00–11:59 UTC when `daymeme` is enabled. Update yt-dlp regularly (`yt-dlp -U`).
+**Runtime**: Empty/invalid ENABLED_FEATURES causes panic. Bot creates writable temp dirs: YTDLP_TMP_DIR (`/tmp/ytdlp`, also used for day meme temp files under `day-video/`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), TELETEXT_IMAGE_DIR (`/tmp/teletext`). Day meme overlay uses UTC calendar date; posts are attempted only during 03:00–11:59 UTC when `daymeme` is enabled. Update yt-dlp regularly (`yt-dlp -U`).
 
 **Testing**: Add tests for new features. No platform integration tests—manual verification required.
 
@@ -73,7 +74,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 ## Environment Variables (internal/config/env.go)
 
 **Required**: ENABLED_FEATURES (semicolon-separated), TELEGRAM_TOKEN or DISCORD_TOKEN, MISTRAL_TOKEN (for tuplilla)  
-**Optional**: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), REPOST_DB_DIR (`/tmp/repost-db`), DATABASE_FILE, PROXY_URLS (SOCKS5 proxies), ALWAYS_RE_ENCODE (false)
+**Optional**: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), REPOST_DB_DIR (`/tmp/repost-db`), TELETEXT_IMAGE_DIR (`/tmp/teletext`), DATABASE_FILE, PROXY_URLS (SOCKS5 proxies), ALWAYS_RE_ENCODE (false)
 
 ## Pre-commit Checklist
 

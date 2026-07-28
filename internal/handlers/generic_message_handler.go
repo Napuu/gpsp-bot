@@ -12,6 +12,12 @@ type GenericMessageHandler struct {
 	next ContextHandler
 }
 
+// Telegram only accepts ASCII command names in its command menu, so non-ASCII
+// spellings are accepted here but map to the ASCII action used in ENABLED_FEATURES.
+var actionAliases = map[string]Action{
+	"häppener": Happener,
+}
+
 func (mp *GenericMessageHandler) Execute(m *Context) {
 	slog.Debug("rawText: " + m.rawText)
 	var extractedAction string
@@ -38,8 +44,13 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 		textWithoutPrefixOrSuffix = textNoSuffix
 	}
 
-	if (hasPrefix || hasSuffix) && extractedAction != "" && strings.Contains(config.FromEnv().ENABLED_FEATURES, extractedAction) {
-		switch Action(extractedAction) {
+	resolvedAction := Action(extractedAction)
+	if alias, exists := actionAliases[extractedAction]; exists {
+		resolvedAction = alias
+	}
+
+	if (hasPrefix || hasSuffix) && extractedAction != "" && strings.Contains(config.FromEnv().ENABLED_FEATURES, string(resolvedAction)) {
+		switch resolvedAction {
 		case DownloadVideo:
 			m.action = DownloadVideo
 		case Tuplilla:
@@ -52,6 +63,8 @@ func (mp *GenericMessageHandler) Execute(m *Context) {
 			m.action = Version
 		case Stats:
 			m.action = Stats
+		case Happener:
+			m.action = Happener
 		}
 
 		m.parsedText = strings.TrimSpace(strings.Replace(textWithoutPrefixOrSuffix, extractedAction, "", 1))

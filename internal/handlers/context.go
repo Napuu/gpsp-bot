@@ -31,6 +31,7 @@ const (
 	Euribor       Action = "euribor"
 	Version       Action = "version"
 	Stats         Action = "stats"
+	Happener      Action = "happener"
 )
 
 var ActionMap = map[Action]ActionDescription{
@@ -40,6 +41,7 @@ var ActionMap = map[Action]ActionDescription{
 	Ping:          "Ping",
 	Version:       "Version",
 	Stats:         "Videopostaajien tilastot",
+	Happener:      "Teksti-TV-sivu",
 }
 
 type Context struct {

@@ -24,6 +24,8 @@ func NewChainOfResponsibility() *HandlerChain {
 
 	euriborHandler := &handlers.EuriborHandler{}
 
+	happenerHandler := &handlers.HappenerHandler{}
+
 	markForDeletionHandler := &handlers.MarkForDeletionHandler{}
 	markForNaggingHandler := &handlers.MarkForNaggingHandler{}
 	constructTextResponseHandler := &handlers.ConstructTextResponseHandler{}
@@ -51,7 +53,8 @@ func NewChainOfResponsibility() *HandlerChain {
 	videoPostprocessingHandler.SetNext(repostDetectionHandler)
 	repostDetectionHandler.SetNext(euriborHandler)
 
-	euriborHandler.SetNext(statsHandler)
+	euriborHandler.SetNext(happenerHandler)
+	happenerHandler.SetNext(statsHandler)
 	statsHandler.SetNext(tuplillaResponseHandler)
 
 	tuplillaResponseHandler.SetNext(hyvaSuomiResponseHandler)

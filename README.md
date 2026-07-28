@@ -53,6 +53,23 @@ no dubz: Ei tuplia 😿, ei tehdä asiaa X
 ```
 `MISTRAL_TOKEN` required for this one because we try respond with grammatically correct negation. Sometimes works, sometimes not.
 
+### /häppener
+
+Sends a YLE teksti-TV page as an image. Both `/häppener` and `/happener` work; Telegram's command menu only accepts ASCII, so the menu entry is `/happener`. Enable with `ENABLED_FEATURES=happener`.
+
+Pages come from `https://yle.fi/aihe/yle-ttv/json?P=<page>_<subpage>` which returns the rendered page as a base64 data URI. `utils.FetchTeletextPage` takes any page id in `<page>_<subpage>` format. Images are written to `TELETEXT_IMAGE_DIR` which is cleared periodically.
+
+One page is picked at random per invocation from:
+
+| Page | Id |
+| --- | --- |
+| Radiation levels | 867_0002 |
+| Price of electricity | 189_0001 |
+| Exchange | 180_0001 |
+| Foreign currencies | 173_0002 |
+| Marine weather | 403_0001 |
+| Emergency warnings | 112_0001 |
+
 ### Day meme easter egg (`daymeme`)
 
 Not a user command. When enabled via `ENABLED_FEATURES=daymeme`, the bot may occasionally post a short day meme video to active group chats. A group is considered active purely from bot video activity: at least 7 non-repost bot video downloads in group chats in the last 7 days (the same posts already tracked for reactions). Posting is driven by a background scan only, not by individual messages. Scheduling uses a random 14–42 day window; posting is attempted during **03:00–11:59 UTC** only. The overlay date is the **UTC calendar date**.
@@ -74,7 +91,7 @@ PROXY_URLS="localhost:1235;localhost:1234" \
   DATABASE_FILE=/opt/euribor.db \
   MISTRAL_TOKEN=<mistral token> \
   TELEGRAM_TOKEN=<telegram token> \
-  ENABLED_FEATURES="ping;dl;euribor;tuplilla;daymeme" \
+  ENABLED_FEATURES="ping;dl;euribor;tuplilla;daymeme;happener" \
   go run gpsp-bot.go telegram
 ```
 
