@@ -3,11 +3,11 @@ package handlers
 import (
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/pkg/utils"
-	"golang.org/x/exp/rand"
 	tele "gopkg.in/telebot.v4"
 )
 
@@ -56,8 +56,8 @@ func (r *TuplillaResponseHandler) Execute(m *Context) {
 				MessageID: m.id,
 			}
 
-			cube1 := rand.Intn(6) + 1
-			cube2 := rand.Intn(6) + 1
+			cube1 := rand.IntN(6) + 1
+			cube2 := rand.IntN(6) + 1
 
 			dubzNegation := make(chan string)
 			go func() {
