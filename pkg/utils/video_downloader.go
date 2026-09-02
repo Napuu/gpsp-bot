@@ -99,8 +99,8 @@ func cycleProxy() string {
 }
 
 func tryDownloadWithExtractor(extractor ExtractorFunc, urlStr, filePath string, targetSizeInMB uint64, supportsProxy bool) bool {
-	slog.Info("Downloading with no proxy")
 	if extractor(urlStr, filePath, "", targetSizeInMB) {
+		slog.Info("Download succeeded without proxy")
 		return true
 	}
 
@@ -108,13 +108,29 @@ func tryDownloadWithExtractor(extractor ExtractorFunc, urlStr, filePath string, 
 		return false
 	}
 
-	for i := 0; i < len(proxyURLs); i++ {
-		proxy := cycleProxy()
-		slog.Info(fmt.Sprintf("Trying with proxy %s", proxy))
+	configuredProxies := 0
+	for _, p := range proxyURLs {
+		if strings.TrimSpace(p) != "" {
+			configuredProxies++
+		}
+	}
+	if configuredProxies == 0 {
+		slog.Warn("Direct download failed; no proxies configured")
+		return false
+	}
 
+	slog.Warn(fmt.Sprintf("Direct download failed, trying %d proxy(ies)", configuredProxies))
+
+	for i := 0; i < len(proxyURLs); i++ {
+		proxy := strings.TrimSpace(cycleProxy())
+		if proxy == "" {
+			continue
+		}
 		if extractor(urlStr, filePath, proxy, targetSizeInMB) {
+			slog.Info(fmt.Sprintf("Download succeeded via proxy %s", proxy))
 			return true
 		}
+		slog.Warn(fmt.Sprintf("Download via proxy %s failed", proxy))
 	}
 
 	return false
@@ -128,7 +144,7 @@ func isValidVideoFile(filePath string) bool {
 	cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_type", "-of", "default=noprint_wrappers=1:nokey=1", filePath)
 	output, err := cmd.Output()
 	if err != nil {
-		slog.Info(fmt.Sprintf("File validation failed for %s: %v", filePath, err))
+		slog.Warn(fmt.Sprintf("File validation failed for %s: %v", filePath, err))
 		return false
 	}
 
@@ -137,7 +153,7 @@ func isValidVideoFile(filePath string) bool {
 	isValid := outputStr == "video"
 
 	if !isValid {
-		slog.Info(fmt.Sprintf("Downloaded file is not a valid video: %s (codec_type: %s)", filePath, outputStr))
+		slog.Warn(fmt.Sprintf("Downloaded file is not a valid video: %s (codec_type: %s)", filePath, outputStr))
 	}
 
 	return isValid
@@ -158,13 +174,14 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 			}
 			// Remove invalid file and continue to next method
 			if err := os.Remove(filePath); err != nil {
-				slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+				slog.Warn(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
 			}
+			slog.Warn(fmt.Sprintf("%s downloaded an invalid video file", specialExtractor.Command))
 		}
-		slog.Info(fmt.Sprintf("%s failed, falling back to yt-dlp", specialExtractor.Command))
+		slog.Warn(fmt.Sprintf("%s failed, falling back to yt-dlp", specialExtractor.Command))
 	}
 
-	slog.Info("Using yt-dlp")
+	slog.Info("Trying yt-dlp")
 	if tryDownloadWithExtractor(attemptYtDlpDownload, url, filePath, targetSizeInMB, true) {
 		// Validate the downloaded file
 		if isValidVideoFile(filePath) {
@@ -172,11 +189,12 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 		}
 		// Remove invalid file and continue to next method
 		if err := os.Remove(filePath); err != nil {
-			slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+			slog.Warn(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
 		}
+		slog.Warn("yt-dlp downloaded an invalid video file")
 	}
 
-	slog.Info("yt-dlp failed, trying HTTP fallback")
+	slog.Warn("yt-dlp failed, trying HTTP fallback")
 	if tryDownloadWithExtractor(attemptHTTPDownload, url, filePath, targetSizeInMB, true) {
 		// Validate the downloaded file
 		if isValidVideoFile(filePath) {
@@ -184,11 +202,12 @@ func DownloadVideo(url string, targetSizeInMB uint64) string {
 		}
 		// Remove invalid file
 		if err := os.Remove(filePath); err != nil {
-			slog.Info(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
+			slog.Warn(fmt.Sprintf("Failed to remove invalid file %s: %v", filePath, err))
 		}
+		slog.Warn("HTTP fallback downloaded an invalid video file")
 	}
 
-	slog.Info("Downloading failed")
+	slog.Error("Video download failed after all methods")
 	return ""
 }
 
