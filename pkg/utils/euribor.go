@@ -216,39 +216,48 @@ func GetRatesFromCSV(filePath string, startDate time.Time) []EuriborRateEntry {
 		return []EuriborRateEntry{}
 	}
 
+	// Read every row as VARCHAR and keep only rows whose 2nd field is a date.
+	// That ignores Bank of Finland metadata, blank lines, and renamed headers
+	// (e.g. date/rate vs value/value) without relying on a fixed SKIP.
 	query := `
 		WITH
 		  raw_interest_rates AS (
 			SELECT *
-			FROM read_csv_auto("` + strings.TrimSuffix(filePath, "/") + `/*",
-			  HEADER=false,
-			  DELIM=',',
-			  QUOTE='"',
-			  SKIP=3,
-			  COLUMNS={'provider': 'VARCHAR', 'date': 'DATE', 'name': 'VARCHAR', 'rate': 'VARCHAR'}
+			FROM read_csv("` + strings.TrimSuffix(filePath, "/") + `/*",
+			  header = false,
+			  delim = ',',
+			  quote = '"',
+			  all_varchar = true,
+			  ignore_errors = true,
+			  null_padding = true
 			)
 		  ),
 		  interest_rates AS (
-			SELECT provider,
-			CAST(date AS DATE) as date,
-			name,
-			CAST(REPLACE(rate, ',', '.') AS DOUBLE) AS rate
+			SELECT
+			  column0 AS provider,
+			  TRY_CAST(column1 AS DATE) AS date,
+			  column2 AS name,
+			  TRY_CAST(REPLACE(column3, ',', '.') AS DOUBLE) AS rate
 			FROM raw_interest_rates
+			WHERE TRY_CAST(column1 AS DATE) IS NOT NULL
 		  )
 		SELECT
 			date,
 			MAX(CASE WHEN name = '3 kk (tod.pv/360)' THEN rate END) AS threemonths,
 			MAX(CASE WHEN name = '6 kk (tod.pv/360)' THEN rate END) AS sixmonths,
-			MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN rate END) AS twelvemonths,
+			MAX(CASE WHEN name = '12 kk (tod.pv/360)' THEN rate END) AS twelvemonths
 		FROM interest_rates
 		WHERE
 			rate IS NOT NULL AND
-			date >= '` + startDate.Format("2006-01-02") + `' GROUP BY date ORDER BY DATE DESC;
+			date >= '` + startDate.Format("2006-01-02") + `'
+		GROUP BY date
+		ORDER BY date DESC;
 	`
 
 	rows, err := conn.Query(query)
 	if err != nil {
-		log.Fatalf("could not query DuckDB: %v", err)
+		slog.Warn("could not query DuckDB for euribor csv", "error", err)
+		return []EuriborRateEntry{}
 	}
 	defer rows.Close()
 
@@ -256,13 +265,15 @@ func GetRatesFromCSV(filePath string, startDate time.Time) []EuriborRateEntry {
 	for rows.Next() {
 		var entry EuriborRateEntry
 		if err := rows.Scan(&entry.Date, &entry.ThreeMonths, &entry.SixMonths, &entry.TwelveMonths); err != nil {
-			log.Fatalf("could not scan row: %v", err)
+			slog.Warn("could not scan euribor row", "error", err)
+			return []EuriborRateEntry{}
 		}
 		history = append(history, entry)
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Fatalf("error iterating rows: %v", err)
+		slog.Warn("error iterating euribor rows", "error", err)
+		return []EuriborRateEntry{}
 	}
 
 	return history
