@@ -65,6 +65,8 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 
 ## Making Changes
 
+**Commit messages**: Prefer [Scoped Commits](https://scopedcommits.com/) (`<scope>: <description>`). This is guidance only—there is no CI/hook enforcement.
+
 **New Handler**: Create `internal/handlers/*_handler.go` implementing `ContextHandler` (Execute, SetNext). Add to chain in `internal/chain/chain.go`. Add test. 
 
 **New Feature**: Define Action constant in `internal/handlers/context.go`, add to ActionMap, create handler(s), wire to chain, update README, test with `ENABLED_FEATURES=newfeature`. 
