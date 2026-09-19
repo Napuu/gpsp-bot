@@ -6,10 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // GetVideoFingerprint returns a slice of bytes representing the video structure
@@ -115,8 +118,10 @@ func ExtractOCRText(videoPath, tmpDir string) (string, bool, error) {
 
 	midpoint := duration / 2.0
 
-	// Extract one frame at midpoint (640px wide for OCR legibility)
-	framePath := filepath.Join(tmpDir, "ocr_frame.png")
+	// Extract one frame at midpoint (640px wide for OCR legibility).
+	// Unique path so concurrent /dl and bot-forward ingest cannot clobber a shared file.
+	framePath := filepath.Join(tmpDir, fmt.Sprintf("%s_ocr_frame.png", uuid.New().String()))
+	defer os.Remove(framePath)
 	extractCmd := exec.Command("ffmpeg",
 		"-y",
 		"-ss", fmt.Sprintf("%.3f", midpoint),

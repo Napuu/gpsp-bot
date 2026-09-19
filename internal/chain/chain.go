@@ -11,6 +11,8 @@ type HandlerChain struct {
 func NewChainOfResponsibility() *HandlerChain {
 	onTextHandler := &handlers.OnTextHandler{}
 
+	botForwardIngestHandler := &handlers.BotForwardIngestHandler{}
+
 	genericMessageHandler := &handlers.GenericMessageHandler{}
 
 	urlParsingHandler := &handlers.URLParsingHandler{}
@@ -41,7 +43,9 @@ func NewChainOfResponsibility() *HandlerChain {
 
 	endOfChainHandler := &handlers.EndOfChainHandler{}
 
-	onTextHandler.SetNext(genericMessageHandler)
+	onTextHandler.SetNext(botForwardIngestHandler)
+
+	botForwardIngestHandler.SetNext(genericMessageHandler)
 
 	genericMessageHandler.SetNext(urlParsingHandler)
 	urlParsingHandler.SetNext(typingHandler)

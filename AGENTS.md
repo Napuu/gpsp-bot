@@ -3,7 +3,7 @@
 ## Repository Overview
 **gpsp-bot** is a Telegram/Discord bot using Go 1.27.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, DuckDB (requires CGO).
 
-**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler (a background ticker; it is not message-triggered). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `happener` (YLE teksti-TV page as image), `daymeme` (background day meme video easter egg, not a user command).
+**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `bot_forward_ingest_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler (a background ticker; it is not message-triggered). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `happener` (YLE teksti-TV page as image), `daymeme` (background day meme video easter egg, not a user command).
 
 **Key Files**:
 - `gpsp-bot.go` - Main entry point
@@ -13,6 +13,7 @@
 - `internal/handlers/context.go` - Action definitions and context
 - `internal/handlers/stats_handler.go` - Stats feature handler
 - `internal/handlers/repost_detection_handler.go` - Repost detection handler
+- `internal/handlers/bot_forward_ingest_handler.go` - Seeds fingerprints when bot videos are forwarded into Telegram groups
 - `internal/handlers/euribor_handler.go` - Euribor rates handler
 - `internal/handlers/happener_handler.go` - Teksti-TV page handler (`/häppener`, `/happener`); page fetching lives in `pkg/utils/teletext.go`
 - `internal/handlers/tuplilla_response_handler.go` - Tuplilla (dice+LLM) handler

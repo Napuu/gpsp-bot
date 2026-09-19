@@ -127,6 +127,8 @@ func main() {
 		dayVideoScheduler.Start(ctx)
 
 		bot.Handle(tele.OnText, wrapTeleHandler(bot, handlerChain))
+		bot.Handle(tele.OnVideo, wrapTeleHandler(bot, handlerChain))
+		bot.Handle(tele.OnAnimation, wrapTeleHandler(bot, handlerChain))
 		log.Println("Starting Telegram bot...")
 		go bot.Start()
 		<-ctx.Done()
