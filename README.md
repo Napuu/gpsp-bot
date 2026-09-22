@@ -30,8 +30,6 @@ Downloads video in the link and sends it as a video while deleting the original 
 
 Use `PROXY_URLS` environment variable to provide list of available SOCKS5-proxies to circumvent IP-range restrictions. Videos are stored at `YTDLP_TMP_DIR` which is cleared periodically.
 
-Repost detection fingerprints videos after `/dl`. When someone forwards a video originally sent by this bot into a Telegram group, that media is also fingerprinted for the destination group so later `/dl` of the same clip can be detected there.
-
 This command requires [yt-dlp](https://github.com/yt-dlp/yt-dlp) to be available at `PATH`. For downloads to keep working, you should run `yt-dlp -U` so it is running the latest available release.
 
 If `ALWAYS_RE_ENCODE` is set to true, videos are always reencoded to H.264 to get rid of VP9/AV1. Fruit phones seem to have issues with these and also the check is not always reliable.
