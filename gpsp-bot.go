@@ -13,7 +13,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/napuu/gpsp-bot/internal/chain"
 	"github.com/napuu/gpsp-bot/internal/config"
-	"github.com/napuu/gpsp-bot/internal/dayvideo"
 	"github.com/napuu/gpsp-bot/internal/doctor"
 	"github.com/napuu/gpsp-bot/internal/handlers"
 	"github.com/napuu/gpsp-bot/internal/platforms"
@@ -30,24 +29,12 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: gpsp-bot <platform|doctor|day-video> (telegram, discord, doctor, or day-video)")
+		log.Fatal("Usage: gpsp-bot <platform|doctor> (telegram, discord, or doctor)")
 	}
 
 	command := os.Args[1]
 	if command == "doctor" {
 		doctor.Run()
-		return
-	}
-
-	if command == "day-video" {
-		outputPath, when, err := parseDayVideoArgs(os.Args[2:])
-		if err != nil {
-			log.Fatalf("Invalid day-video arguments: %v", err)
-		}
-		if err := utils.GenerateDayVideo(outputPath, when); err != nil {
-			log.Fatalf("Failed to generate day video: %v", err)
-		}
-		fmt.Println(outputPath)
 		return
 	}
 
@@ -84,7 +71,6 @@ func main() {
 		log.Fatalf("Failed to initialize stats DB: %v", err)
 	}
 
-	var dayVideoScheduler *dayvideo.Scheduler
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -122,9 +108,7 @@ func main() {
 			log.Printf("Failed to set Telegram commands: %v", err)
 		}
 
-		dayVideoScheduler = dayvideo.NewScheduler(dbPath, bot, nil)
 		handlerChain := chain.NewChainOfResponsibility()
-		dayVideoScheduler.Start(ctx)
 
 		bot.Handle(tele.OnText, wrapTeleHandler(bot, handlerChain))
 		log.Println("Starting Telegram bot...")
@@ -137,9 +121,7 @@ func main() {
 			log.Fatalf("Failed to initialize Discord session: %v", err)
 		}
 
-		dayVideoScheduler = dayvideo.NewScheduler(dbPath, nil, dg)
 		handlerChain := chain.NewChainOfResponsibility()
-		dayVideoScheduler.Start(ctx)
 
 		statsDB, err := utils.OpenStatsDB(dbPath)
 		if err != nil {
@@ -194,20 +176,4 @@ func wrapDiscoHandler(handlerChain *chain.HandlerChain) func(s *discordgo.Sessio
 		}
 		handlerChain.Process(&handlers.Context{DiscordSession: s, DiscordMessage: m, Service: handlers.Discord})
 	}
-}
-
-func parseDayVideoArgs(args []string) (outputPath string, when time.Time, err error) {
-	outputPath = filepath.Join(utils.DayVideoTmpDir(), "output.mp4")
-	when = time.Now().UTC()
-
-	for _, arg := range args {
-		parsed, parseErr := time.ParseInLocation("2006-01-02", arg, time.UTC)
-		if parseErr == nil {
-			when = parsed
-			continue
-		}
-		outputPath = arg
-	}
-
-	return outputPath, when, nil
 }

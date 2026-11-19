@@ -10,7 +10,7 @@ import (
 func TelebotCompatibleVisibleCommands() []tele.Command {
 	commands := make([]tele.Command, 0, len(config.EnabledFeatures()))
 	for _, action := range config.EnabledFeatures() {
-		if action == "" || config.IsBackgroundFeature(action) {
+		if action == "" {
 			continue
 		}
 		if handlers.Action(action) == handlers.Ping || handlers.Action(action) == handlers.Version {

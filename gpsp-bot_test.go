@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 // TestMainVersionFlag tests the -v flag by re-executing the test binary.
@@ -71,35 +69,5 @@ func TestMainNoArgs(t *testing.T) {
 	output := stderr.String()
 	if !strings.Contains(output, "Usage: gpsp-bot") {
 		t.Errorf("Expected output to contain 'Usage: gpsp-bot', got %q", output)
-	}
-}
-
-func TestParseDayVideoArgs(t *testing.T) {
-	t.Setenv("YTDLP_TMP_DIR", "/tmp/ytdlp-test")
-
-	outputPath, when, err := parseDayVideoArgs([]string{"/tmp/custom.mp4", "2026-09-30"})
-	if err != nil {
-		t.Fatalf("parseDayVideoArgs() error: %v", err)
-	}
-	if outputPath != "/tmp/custom.mp4" {
-		t.Errorf("outputPath = %q, want /tmp/custom.mp4", outputPath)
-	}
-	if when.Format("2006-01-02") != "2026-09-30" {
-		t.Errorf("when = %v, want 2026-09-30", when)
-	}
-	if when.Location() != time.UTC {
-		t.Errorf("when location = %v, want UTC", when.Location())
-	}
-
-	outputPath, when, err = parseDayVideoArgs([]string{"2026-09-30"})
-	if err != nil {
-		t.Fatalf("parseDayVideoArgs() error: %v", err)
-	}
-	wantDefault := filepath.Join("/tmp/ytdlp-test", "day-video", "output.mp4")
-	if outputPath != wantDefault {
-		t.Errorf("outputPath = %q, want %q", outputPath, wantDefault)
-	}
-	if when.Format("2006-01-02") != "2026-09-30" {
-		t.Errorf("when = %v, want 2026-09-30", when)
 	}
 }

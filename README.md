@@ -70,17 +70,6 @@ One page is picked at random per invocation from:
 | Marine weather | 403_0001 |
 | Emergency warnings | 112_0001 |
 
-### Day meme easter egg (`daymeme`)
-
-Not a user command. When enabled via `ENABLED_FEATURES=daymeme`, the bot may occasionally post a short day meme video to active group chats. A group is considered active purely from bot video activity: at least 7 non-repost bot video downloads in group chats in the last 7 days (the same posts already tracked for reactions). Posting is driven by a background scan only, not by individual messages. Scheduling uses a random 14–42 day window; posting is attempted during **03:00–11:59 UTC** only. The overlay date is the **UTC calendar date**.
-
-Generate a video manually for testing:
-```
-./gpsp-bot day-video /tmp/out.mp4 2026-06-06
-```
-Dates are interpreted as UTC. Temp files are stored under `{YTDLP_TMP_DIR}/day-video`.
-
-
 ## Sample configs
 
 ### Telegram with a lot of features enabled
@@ -91,7 +80,7 @@ PROXY_URLS="localhost:1235;localhost:1234" \
   DATABASE_FILE=/opt/euribor.db \
   MISTRAL_TOKEN=<mistral token> \
   TELEGRAM_TOKEN=<telegram token> \
-  ENABLED_FEATURES="ping;dl;euribor;tuplilla;daymeme;happener" \
+  ENABLED_FEATURES="ping;dl;euribor;tuplilla;happener" \
   go run gpsp-bot.go telegram
 ```
 

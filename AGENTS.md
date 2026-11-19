@@ -3,7 +3,7 @@
 ## Repository Overview
 **gpsp-bot** is a Telegram/Discord bot using Go 1.27.0 with a chain-of-responsibility pattern. Main entry: `gpsp-bot.go`. External dependencies: yt-dlp, ffmpeg, chromium/playwright, DuckDB (requires CGO).
 
-**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/dayvideo/` runs the day meme easter egg scheduler (a background ticker; it is not message-triggered). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `happener` (YLE teksti-TV page as image), `daymeme` (background day meme video easter egg, not a user command).
+**Architecture**: `internal/chain/chain.go` defines message handler chain. `internal/handlers/` process messages (e.g., `stats_handler.go`, `repost_detection_handler.go`, `euribor_handler.go`, `tuplilla_response_handler.go`, `video_download_handler.go`, `video_stats_handler.go`). `internal/platforms/` handles Telegram/Discord. `pkg/utils/` has video/euribor/LLM utilities. Features enabled via `ENABLED_FEATURES` env var (semicolon-separated): `ping`, `dl` (video download), `euribor` (interest rates), `tuplilla` (dice+LLM), `stats`, `version`, `happener` (YLE teksti-TV page as image).
 
 **Key Files**:
 - `gpsp-bot.go` - Main entry point
@@ -17,8 +17,7 @@
 - `internal/handlers/happener_handler.go` - Teksti-TV page handler (`/häppener`, `/happener`); page fetching lives in `pkg/utils/teletext.go`
 - `internal/handlers/tuplilla_response_handler.go` - Tuplilla (dice+LLM) handler
 - `internal/handlers/video_download_handler.go` - Video download handler
-- `internal/handlers/video_stats_handler.go` - Records bot video posts (incl. `is_group_chat`), the day meme activity signal
-- `internal/dayvideo/scheduler.go` - Day meme background scheduler
+- `internal/handlers/video_stats_handler.go` - Records bot video posts
 - `internal/platforms/common.go` - Platform validation
 - `.github/workflows/build.yml` - CI/CD pipeline
 
@@ -38,7 +37,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 **Dead code**: `go run golang.org/x/tools/cmd/deadcode@v0.49.0 -test ./...` (should print nothing; any output is an unreachable function)  
 **Dependencies**: `go mod download` or `go mod tidy`
 
-**Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN). Use `./gpsp-bot doctor` to run diagnostics and validate configuration. Generate a day meme video manually with `./gpsp-bot day-video [output] [YYYY-MM-DD]` (UTC date).  
+**Run**: `ENABLED_FEATURES=ping ./gpsp-bot telegram` or `./gpsp-bot discord` (needs TELEGRAM_TOKEN or DISCORD_TOKEN). Use `./gpsp-bot doctor` to run diagnostics and validate configuration.  
 **Container**: `podman build -t gpsp-bot . && podman run -e ENABLED_FEATURES=ping -e TELEGRAM_TOKEN=<token> gpsp-bot telegram`
 
 **Critical**: CGO required (DuckDB). Bot panics if ENABLED_FEATURES empty/invalid or missing platform token. No linter configs exist—use standard Go tools only.
@@ -59,7 +58,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 
 **Build**: DuckDB needs `CGO_ENABLED=1`. arm64 cross-compile needs cross-compiler toolchain. yt-dlp/ffmpeg checked at runtime only.
 
-**Runtime**: Empty/invalid ENABLED_FEATURES causes panic. Bot creates writable temp dirs: YTDLP_TMP_DIR (`/tmp/ytdlp`, also used for day meme temp files under `day-video/`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), TELETEXT_IMAGE_DIR (`/tmp/teletext`). Day meme overlay uses UTC calendar date; posts are attempted only during 03:00–11:59 UTC when `daymeme` is enabled. Update yt-dlp regularly (`yt-dlp -U`).
+**Runtime**: Empty/invalid ENABLED_FEATURES causes panic. Bot creates writable temp dirs: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), TELETEXT_IMAGE_DIR (`/tmp/teletext`). Update yt-dlp regularly (`yt-dlp -U`).
 
 **Testing**: Add tests for new features. No platform integration tests—manual verification required.
 

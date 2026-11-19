@@ -16,7 +16,7 @@ func actionExists(action string) bool {
 
 func VerifyEnabledCommands() {
 	for _, action := range config.EnabledFeatures() {
-		if action == "" || config.IsBackgroundFeature(action) {
+		if action == "" {
 			continue
 		}
 		if actionExists(action) {
