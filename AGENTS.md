@@ -25,11 +25,16 @@
 
 **Build**: `go build -o gpsp-bot gpsp-bot.go`  
 **Clean build**: `go clean && go build -o gpsp-bot gpsp-bot.go`  
-**Cross-compile arm64** (needs `gcc-aarch64-linux-gnu` + `g++-aarch64-linux-gnu`):
+**Cross-compile static binaries** (output runs on any Linux regardless of the host glibc — this is what CI releases use; a dynamic binary built on ubuntu-latest requires that runner's glibc and broke deployments on older Ubuntu, the GLIBC_2.43 incident):
 ```bash
-GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ \
-  go build -o gpsp-bot-linux-arm64 gpsp-bot.go
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC=gcc CXX=g++ \
+  go build -ldflags "-linkmode external -extldflags=-static" -o gpsp-bot-linux-amd64 gpsp-bot.go
+# arm64 needs gcc-aarch64-linux-gnu + g++-aarch64-linux-gnu:
+CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ \
+  go build -ldflags "-linkmode external -extldflags=-static" -o gpsp-bot-linux-arm64 gpsp-bot.go
 ```
+Static glibc links fine with DuckDB's prebuilt archives (they need `-lstdc++`, which the runner's g++ provides). Expect harmless link warnings about dlopen/getaddrinfo in static binaries; DNS via /etc/resolv.conf still works. Verify with `file` (must say "statically linked") and `readelf -d` (must have no NEEDED entries).
+The `muslcompat` tag compiles `internal/muslcompat`, which shims the few glibc-only symbols (`__res_init`, `backtrace`, `backtrace_symbols`, `malloc_trim`) that the prebuilt DuckDB archives reference. Never combine it with a glibc toolchain — the shims would interpose libc symbols.
 **Test**: `go test -v ./...`  
 **Coverage**: `go test -v -coverprofile=coverage.out ./...`  
 **Format**: `go fmt ./...`  
@@ -46,7 +51,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 
 `.github/workflows/build.yml` runs on push/PR to main, `workflow_dispatch`, or `workflow_call`:
 1. **test** job: Go 1.27.1, runs `go test -v ./...` then `go run golang.org/x/tools/cmd/deadcode@v0.49.0 -test ./...` (fails the build on any unreachable function)
-2. **build** job (after test): Matrix for linux-amd64 and linux-arm64, sets CGO_ENABLED=1, installs cross-compiler for arm64, embeds version via `-ldflags`, uploads artifacts (configurable retention days, default 30)
+2. **build** job (after test): Matrix for linux-amd64 and linux-arm64, installs the arm64 cross-compiler via apt, and builds **statically linked** binaries (`-linkmode external -extldflags=-static`) so artifacts run on any Linux regardless of the host glibc. Verifies each binary is statically linked with no dynamic NEEDED entries and smoke-tests the amd64 one in an `alpine:3.22` container. Embeds version via `-ldflags`, uploads artifacts (configurable retention days, default 30)
 
 **Inputs**:
 - `version`: Version to embed in the binary
@@ -56,7 +61,7 @@ GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc CXX=aarch64-linux
 
 ## Common Pitfalls
 
-**Build**: DuckDB needs `CGO_ENABLED=1`. arm64 cross-compile needs cross-compiler toolchain. yt-dlp/ffmpeg checked at runtime only.
+**Build**: DuckDB needs `CGO_ENABLED=1`. Release binaries must be **statically linked** (see above) — a dynamic binary built on ubuntu-latest requires that runner's glibc and will fail on older Ubuntu hosts (this caused a GLIBC_2.43 incident when ubuntu-latest moved to 26.04). yt-dlp/ffmpeg checked at runtime only.
 
 **Runtime**: Empty/invalid ENABLED_FEATURES causes panic. Bot creates writable temp dirs: YTDLP_TMP_DIR (`/tmp/ytdlp`), EURIBOR_GRAPH_DIR (`/tmp/euribor-graphs`), EURIBOR_CSV_DIR (`/tmp/euribor-exports`), TELETEXT_IMAGE_DIR (`/tmp/teletext`). Update yt-dlp regularly (`yt-dlp -U`).
 
